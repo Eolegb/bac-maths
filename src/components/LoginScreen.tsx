@@ -1,16 +1,13 @@
 import React, { useState } from "react";
-import { LogOut } from "lucide-react";
 
 interface LoginScreenProps {
   onLogin: (username: string) => void;
   currentUser: string | null;
-  onLogout: () => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLogin,
   currentUser,
-  onLogout,
 }) => {
   const [username, setUsername] = useState<string>("");
   const [error, setError] = useState<string>("");

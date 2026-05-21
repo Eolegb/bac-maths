@@ -4,7 +4,6 @@ import {
   Flame,
   CheckCircle2,
   XCircle,
-  Share,
   Sparkles,
   Award,
   Download,
@@ -12,14 +11,20 @@ import {
   Info,
   ArrowRight,
   BookMarked,
-  PlusCircle,
-  PlusSquare,
-  AlertCircle
+  AlertCircle,
+  LogOut,
+  User
 } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { MODULES, BAC_EXERCISES, BacExercise } from "./data/modules";
 import { GENERATORS, checkAnswer, MathProblem, rnd } from "./utils/generators";
 import { Latex } from "./components/Latex";
+import { LoginScreen } from "./components/LoginScreen";
+import { MathKeyboard } from "./components/MathKeyboard";
+
+// Préfixe localStorage pour cloisonner les données par utilisateur
+const storageKey = (user: string, key: string) => `spe_maths::${user}::${key}`;
+const CURRENT_USER_KEY = "spe_maths_current_user";
 
 export default function App() {
   // Navigation & Module states
@@ -42,53 +47,76 @@ export default function App() {
   const [showBacCorrection, setShowBacCorrection] = useState<boolean>(false);
   const [bacTextResponse, setBacTextResponse] = useState<string>(`Étape 1 : \nÉtape 2 : \nConclusion : `);
 
-  // PWA & UI states
-  const [isStandalone, setIsStandalone] = useState<boolean>(false);
-  const [isIOS, setIsIOS] = useState<boolean>(false);
-  const [showInstallModal, setShowInstallModal] = useState<boolean>(false);
+  // UI states
   const [showStatsModal, setShowStatsModal] = useState<boolean>(false);
+
+  // Auth state
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const capTargetRef = useRef<HTMLDivElement>(null);
 
-  // Initialize and load state
+  // Restore session on mount
   useEffect(() => {
-    // Detect PWA status
-    const checkStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
-    setIsStandalone(checkStandalone);
+    const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+    if (savedUser) setCurrentUser(savedUser);
+    setAuthReady(true);
+  }, []);
 
-    // Detect iOS
-    const detectIOS =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(detectIOS);
+  // Load user-specific data when user changes
+  useEffect(() => {
+    if (!currentUser) {
+      setScore({ ok: 0, tot: 0 });
+      setStreak(0);
+      setHistory([]);
+      return;
+    }
 
-    // Load score from localStorage if available
-    const savedScore = localStorage.getItem("spe_maths_score");
-    const savedStreak = localStorage.getItem("spe_maths_streak");
-    const savedHistory = localStorage.getItem("spe_maths_history");
+    const savedScore = localStorage.getItem(storageKey(currentUser, "score"));
+    const savedStreak = localStorage.getItem(storageKey(currentUser, "streak"));
+    const savedHistory = localStorage.getItem(storageKey(currentUser, "history"));
+
     if (savedScore) {
       try {
         setScore(JSON.parse(savedScore));
-      } catch (e) {}
+      } catch (e) {
+        setScore({ ok: 0, tot: 0 });
+      }
+    } else {
+      setScore({ ok: 0, tot: 0 });
     }
-    if (savedStreak) setStreak(parseInt(savedStreak, 10) || 0);
+    setStreak(savedStreak ? parseInt(savedStreak, 10) || 0 : 0);
     if (savedHistory) {
       try {
         setHistory(JSON.parse(savedHistory));
-      } catch (e) {}
+      } catch (e) {
+        setHistory([]);
+      }
+    } else {
+      setHistory([]);
     }
-  }, []);
+  }, [currentUser]);
 
-  // Save state on change
+  // Save state on change, namespaced by user
   useEffect(() => {
+    if (!currentUser) return;
     if (score.tot > 0) {
-      localStorage.setItem("spe_maths_score", JSON.stringify(score));
-      localStorage.setItem("spe_maths_streak", String(streak));
-      localStorage.setItem("spe_maths_history", JSON.stringify(history));
+      localStorage.setItem(storageKey(currentUser, "score"), JSON.stringify(score));
+      localStorage.setItem(storageKey(currentUser, "streak"), String(streak));
+      localStorage.setItem(storageKey(currentUser, "history"), JSON.stringify(history));
     }
-  }, [score, streak, history]);
+  }, [score, streak, history, currentUser]);
+
+  const handleLogin = (username: string) => {
+    localStorage.setItem(CURRENT_USER_KEY, username);
+    setCurrentUser(username);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(CURRENT_USER_KEY);
+    setCurrentUser(null);
+  };
 
   // Generate a problem on load/change
   useEffect(() => {
@@ -196,10 +224,43 @@ export default function App() {
       setScore({ ok: 0, tot: 0 });
       setStreak(0);
       setHistory([]);
-      localStorage.removeItem("spe_maths_score");
-      localStorage.removeItem("spe_maths_streak");
-      localStorage.removeItem("spe_maths_history");
+      if (currentUser) {
+        localStorage.removeItem(storageKey(currentUser, "score"));
+        localStorage.removeItem(storageKey(currentUser, "streak"));
+        localStorage.removeItem(storageKey(currentUser, "history"));
+      }
     }
+  };
+
+  // Backspace + clear helpers pour le clavier maths
+  const handleBackspace = () => {
+    if (!inputRef.current) return;
+    const input = inputRef.current;
+    const start = input.selectionStart ?? userInput.length;
+    const end = input.selectionEnd ?? userInput.length;
+    if (start === 0 && end === 0) return;
+
+    let newValue = userInput;
+    let newPos = start;
+    if (start === end) {
+      // pas de sélection : on supprime le caractère avant le curseur
+      newValue = userInput.substring(0, start - 1) + userInput.substring(end);
+      newPos = start - 1;
+    } else {
+      // sélection : on supprime la sélection
+      newValue = userInput.substring(0, start) + userInput.substring(end);
+      newPos = start;
+    }
+    setUserInput(newValue);
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
+  const handleClearInput = () => {
+    setUserInput("");
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // Download score card using html2canvas
@@ -256,20 +317,15 @@ export default function App() {
   const selectedModule = MODULES[currentModuleId];
   const successRate = score.tot > 0 ? Math.round((score.ok / score.tot) * 100) : 0;
 
-  // Custom virtual keys based on level/module
-  const mathKeys = [
-    { label: "x", value: "x" },
-    { label: "x²", value: "x^2" },
-    { label: "(", value: "(" },
-    { label: ")", value: ")" },
-    { label: "/", value: "/" },
-    { label: "+", value: "+" },
-    { label: "-", value: "-" },
-    { label: "=", value: "=" },
-    { label: "<", value: "<" },
-    { label: ">", value: ">" },
-    { label: "ou", value: " ou " }
-  ];
+  // Attente que la restauration de session soit faite (évite un flash)
+  if (!authReady) {
+    return <div className="min-h-screen bg-[#0c0c0f]" />;
+  }
+
+  // Pas connecté → écran de connexion
+  if (!currentUser) {
+    return <LoginScreen onLogin={handleLogin} currentUser={currentUser} />;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0c0c0f] text-[#ededf5] pb-10">
@@ -306,21 +362,23 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right Header Side: Stats & Installation button */}
+        {/* Right Header Side: User & Stats */}
         <div className="flex items-center gap-2">
-          {/* iOS Install Prompt Button */}
-          {!isStandalone && (
-            <button
-              onClick={() => setShowInstallModal(true)}
-              className="bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-[#f0c040] text-xs font-medium py-1.5 px-3 rounded-full flex items-center gap-1.5 transition-all"
-            >
-              <PlusCircle size={13} />
-              <span className="hidden sm:inline">
-                {isIOS ? "Installer sur Safari" : "Installer l'App"}
-              </span>
-              <span className="sm:hidden">Installer</span>
-            </button>
-          )}
+          {/* Connected user badge with logout */}
+          <button
+            onClick={() => {
+              if (window.confirm(`Se déconnecter de ${currentUser} ? Les sauvegardes restent accessibles à la prochaine connexion.`)) {
+                handleLogout();
+              }
+            }}
+            title="Se déconnecter"
+            className="bg-indigo-500/10 hover:bg-rose-500/10 border border-indigo-500/30 hover:border-rose-500/40 text-[#88a8f0] hover:text-rose-400 text-xs font-medium py-1.5 px-3 rounded-full flex items-center gap-1.5 transition-all group"
+          >
+            <User size={13} className="group-hover:hidden" />
+            <LogOut size={13} className="hidden group-hover:block" />
+            <span className="hidden sm:inline font-bold">{currentUser}</span>
+            <span className="sm:hidden font-bold">{currentUser.slice(0, 6)}</span>
+          </button>
 
           {/* Stats quick view */}
           <button
@@ -475,7 +533,14 @@ export default function App() {
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
                       disabled={hasChecked}
-                      placeholder={hasChecked ? "" : "Écrire votre réponse littérale..."}
+                      placeholder={hasChecked ? "" : "Écrire votre réponse..."}
+                      // inputMode="none" → masque le clavier natif iOS,
+                      // on utilise uniquement notre clavier maths custom
+                      inputMode="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       className={`flex-1 bg-[#1a1a22] border-2 rounded-xl py-3 px-4 text-sm font-mono text-white focus:outline-none transition-all ${
                         hasChecked
                           ? isCorrect
@@ -508,20 +573,13 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Smart Mobile Virtual Helper */}
+                  {/* Clavier maths optimisé iPhone */}
                   {!hasChecked && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      <span className="text-[10px] text-[#8888a8] w-full mb-1">Raccourcis clavier mobile :</span>
-                      {mathKeys.map((k) => (
-                        <button
-                          key={k.label}
-                          onClick={() => insertSymbol(k.value)}
-                          className="bg-[#1a1a22] hover:bg-[#252530] border border-[#32323f] text-[#ededf5] text-xs font-mono font-medium py-1.5 px-3 rounded-lg active:scale-95 transition-all"
-                        >
-                          {k.label}
-                        </button>
-                      ))}
-                    </div>
+                    <MathKeyboard
+                      onSymbolClick={insertSymbol}
+                      onBackspace={handleBackspace}
+                      onClear={handleClearInput}
+                    />
                   )}
 
                   {/* Feedback block */}
@@ -863,59 +921,6 @@ export default function App() {
                 Réinitialiser
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── PWA SAFARI INSTALL GUIDELINES MODAL ── */}
-      {showInstallModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#131318] border border-[#252530] rounded-3xl p-6 max-w-sm w-full space-y-5 shadow-2xl relative text-center">
-            <button
-              onClick={() => setShowInstallModal(false)}
-              className="absolute top-4 right-4 text-[#8888a8] hover:text-white"
-            >
-              ✕
-            </button>
-
-            <div className="w-12 h-12 bg-amber-400/10 border border-amber-400/20 text-[#f0c040] rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
-              <PlusSquare size={24} />
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="font-['Syne'] font-extrabold text-base text-white">Installer l'application</h3>
-              <p className="text-xs text-[#8888a8]">
-                Ajoutez Spé Maths à votre écran d'accueil sur iPhone pour l'utiliser sans barre de navigation Safari.
-              </p>
-            </div>
-
-            <div className="space-y-3 bg-[#0c0c0f] border border-[#252530] p-4 rounded-xl text-left text-xs leading-relaxed text-[#ededf5]">
-              <div className="flex gap-3">
-                <span className="font-bold text-[#f0c040]">1.</span>
-                <p>
-                  Appuyez sur le bouton **Partager** <Share className="inline-block mx-1 w-3.5 h-3.5 text-[#f0c040]" /> dans Safari.
-                </p>
-              </div>
-              <div className="flex gap-3 border-t border-[#252530] pt-2.5">
-                <span className="font-bold text-[#f0c040]">2.</span>
-                <p>
-                  Faites défiler vers le bas et sélectionnez **Sur l'écran d'accueil** <PlusSquare className="inline-block mx-1 w-3.5 h-3.5 text-[#f0c040]" />.
-                </p>
-              </div>
-              <div className="flex gap-3 border-t border-[#252530] pt-2.5">
-                <span className="font-bold text-[#f0c040]">3.</span>
-                <p>
-                  Appuyez sur **Ajouter** en haut à droite. C'est tout !
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowInstallModal(false)}
-              className="w-full bg-[#1a1a22] hover:bg-[#252530] border border-[#32323f] text-[#ededf5] text-xs font-semibold py-2.5 px-4 rounded-xl transition-all"
-            >
-              Fermer
-            </button>
           </div>
         </div>
       )}

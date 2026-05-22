@@ -18,10 +18,6 @@ export function rndNZ(min: number, max: number): number {
   return val;
 }
 
-export function fmtSign(n: number): string {
-  return n >= 0 ? "+" : "-";
-}
-
 export function fmtTerm(coeff: number, variable: string): string {
   if (coeff === 0) return "";
   if (coeff === 1) return variable;
@@ -36,96 +32,28 @@ export const GENERATORS: Record<number, {
   // Module 0: Signes & Priorités
   0: {
     debutant: [
-      // Type 1: Somme de 2 relatifs (Simple)
       () => {
         const a = rndNZ(-20, 20);
         const b = rndNZ(-20, 20);
-        const ans = String(a + b);
         return {
           eq: `${a < 0 ? `(${a})` : a} + ${b < 0 ? `(${b})` : b}`,
           instr: "Calculer la somme des deux nombres relatifs.",
-          ans,
-          steps: [
-            `On additionne $${a}$ et $${b}$.`,
-            a * b > 0 
-              ? `Les deux nombres ont le même signe : on garde le signe et on additionne les distances à zéro.`
-              : `Les deux nombres sont de signes contraires : on prend le signe de celui qui a la plus grande distance à zéro ($|${Math.abs(a)}|$ vs $|${Math.abs(b)}|$) et on soustrait les distances à zéro.`,
-            `Le résultat est $${ans}$.`
-          ]
+          ans: String(a + b),
+          steps: [`$${a} + ${b} = ${a + b}$.`]
         };
       },
-      // Type 2: Soustraction (Transformation en somme)
       () => {
         const a = rndNZ(-15, 15);
         const b = rndNZ(-15, 15);
-        const ans = String(a - b);
         return {
           eq: `${a < 0 ? `(${a})` : a} - ${b < 0 ? `(${b})` : b}`,
           instr: "Calculer la différence.",
-          ans,
-          steps: [
-            `Soustraire un nombre revient à additionner son opposé.`,
-            `L'expression devient : $${a < 0 ? `(${a})` : a} + ${-b < 0 ? `(${-b})` : -b}$.`,
-            `Calcul final : $${ans}$.`
-          ]
-        };
-      },
-      // Type 3: Chaîne de 3 termes
-      () => {
-        const a = rndNZ(-10, 10);
-        const b = rndNZ(-10, 10);
-        const c = rndNZ(-10, 10);
-        const ans = String(a + b + c);
-        return {
-          eq: `${a < 0 ? `(${a})` : a} ${b >= 0 ? '+' : '-'} ${Math.abs(b)} ${c >= 0 ? '+' : '-'} ${Math.abs(c)}`,
-          instr: "Calculer cette suite d'additions et soustractions.",
-          ans,
-          steps: [
-            `On effectue les calculs de gauche à droite.`,
-            `$${a} ${b >= 0 ? '+' : '-'} ${Math.abs(b)} = ${a + b}$.`,
-            `Puis $${a + b} ${c >= 0 ? '+' : '-'} ${Math.abs(c)} = ${ans}$.`
-          ]
-        };
-      },
-      // Type 4: Parenthèses simples
-      () => {
-        const a = rndNZ(10, 30);
-        const b = rnd(2, 15);
-        const c = rnd(2, 15);
-        const isPlus = Math.random() > 0.5;
-        const op = isPlus ? '+' : '-';
-        const inner = b - c;
-        const ans = isPlus ? a + inner : a - inner;
-        return {
-          eq: `${a} ${op} (${b} - ${c})`,
-          instr: "Calculer en respectant la priorité de la parenthèse.",
-          ans: String(ans),
-          steps: [
-            `Calculons d'abord l'intérieur de la parenthèse : $${b} - ${c} = ${inner}$.`,
-            `L'expression devient : $${a} ${op} ${inner < 0 ? `(${inner})` : inner}$.`,
-            `Résultat final : $${ans}$.`
-          ]
-        };
-      },
-      // Type 5: Contexte température
-      () => {
-        const t1 = rnd(-5, 10);
-        const diff = rndNZ(-8, 8);
-        const t2 = t1 + diff;
-        return {
-          eq: `T_1 = ${t1}^\\circ\\text{C} \\xrightarrow{\\text{variation}} ${diff >= 0 ? '+' : ''}${diff}^\\circ\\text{C}`,
-          instr: "Un thermomètre affiche $T_1$. La température varie de la valeur indiquée. Quelle est la nouvelle température ?",
-          ans: String(t2),
-          steps: [
-            `On part de $${t1}$.`,
-            `On ${diff >= 0 ? 'ajoute' : 'retranche'} $|${diff}|$.`,
-            `$${t1} + (${diff}) = ${t2}$.`
-          ]
+          ans: String(a - b),
+          steps: [`$${a} - (${b}) = ${a - b}$.`]
         };
       }
     ],
     intermediaire: [
-      // Type 1: Fractions et priorités
       () => {
         const a = rnd(1, 5);
         const b = rnd(2, 4);
@@ -135,50 +63,9 @@ export const GENERATORS: Record<number, {
         const den = b * d;
         return {
           eq: `\\dfrac{${a}}{${b}} + \\dfrac{${c}}{${d}}`,
-          instr: "Additionner ces deux fractions.",
+          instr: "Additionner les fractions.",
           ans: `${num}/${den}`,
-          steps: [
-            `Mise au même dénominateur ($${b} \\times ${d} = ${den}$) :`,
-            `$\\dfrac{${a} \\times ${d}}{${den}} + \\dfrac{${c} \\times ${b}}{${den}} = \\dfrac{${a * d}}{${den}} + \\dfrac{${b * c}}{${den}}$.`,
-            `On additionne les numérateurs : $\\dfrac{${a * d} + ${b * c}}{${den}} = \\dfrac{${num}}{${den}}$.`
-          ]
-        };
-      },
-      // Type 2: Multiplication de relatifs (Règle des signes)
-      () => {
-        const a = rndNZ(-9, 9);
-        const b = rndNZ(-9, 9);
-        const c = rndNZ(-9, 9);
-        const ans = String(a * b * c);
-        return {
-          eq: `(${a}) \\times (${b}) \\times (${c})`,
-          instr: "Calculer le produit.",
-          ans,
-          steps: [
-            `Comptons le nombre de facteurs négatifs : ${[a, b, c].filter(x => x < 0).length}.`,
-            `Le résultat sera donc ${ans >= 0 ? 'positif' : 'négatif'}.`,
-            `Calcul : $|${a} \\times ${b} \\times ${c}| = ${Math.abs(Number(ans))}$.`,
-            `Finalement : $${ans}$.`
-          ]
-        };
-      },
-      // Type 3: Isoler une variable (Physique/Maths) - Inspiré du Sujet Blanc
-      () => {
-        const types = [
-          { f: "V = \\dfrac{1}{3}B \\times h", target: "h", res: "3V/B" },
-          { f: "U = R \\times I", target: "I", res: "U/R" },
-          { f: "P = 2(L + \\ell)", target: "L", res: "P/2 - \\ell" }
-        ];
-        const t = types[rnd(0, types.length - 1)];
-        return {
-          eq: t.f,
-          instr: `Dans cette formule, exprimer $${t.target}$ en fonction des autres variables.`,
-          ans: t.res,
-          steps: [
-            `On cherche à isoler $${t.target}$.`,
-            `On effectue les opérations inverses sur les deux membres de l'égalité.`,
-            `La réponse attendue est $${t.res}$.`
-          ]
+          steps: [`$\\dfrac{${a*d}}{${den}} + \\dfrac{${b*c}}{${den}} = \\dfrac{${num}}{${den}}$.`]
         };
       }
     ]
@@ -190,168 +77,48 @@ export const GENERATORS: Record<number, {
         const k = rndNZ(-6, 6);
         const a = rndNZ(2, 5);
         const b = rndNZ(-8, 8);
-        const ans = `${k * a}x${k * b >= 0 ? '+' : ''}${k * b}`;
         return {
           eq: `${k}(${a}x ${b >= 0 ? '+' : ''}${b})`,
           instr: "Développer l'expression.",
-          ans,
-          steps: [
-            `On distribue le facteur $${k}$ : $${k} \\times ${a}x + ${k} \\times (${b})$.`,
-            `$${k * a}x + (${k * b}) = ${ans}$.`
-          ]
-        };
-      },
-      // Identités remarquables avec coeff
-      () => {
-        const a = rnd(2, 5);
-        const b = rnd(1, 6);
-        const a2 = a * a;
-        const b2 = b * b;
-        const ab2 = 2 * a * b;
-        return {
-          eq: `(${a}x + ${b})^2`,
-          instr: "Développer en utilisant $(a+b)^2 = a^2 + 2ab + b^2$.",
-          ans: `${a2}x^2+${ab2}x+${b2}`,
-          steps: [
-            `Ici, $A = ${a}x$ et $B = ${b}$.`,
-            `$A^2 = (${a}x)^2 = ${a2}x^2$.`,
-            `$2AB = 2 \\times ${a}x \\times ${b} = ${ab2}x$.`,
-            `$B^2 = ${b}^2 = ${b2}$.`,
-            `Résultat : $${a2}x^2 + ${ab2}x + ${b2}$.`
-          ]
+          ans: `${k * a}x${k * b >= 0 ? '+' : ''}${k * b}`,
+          steps: [`$${k} \\times ${a}x + ${k} \\times (${b}) = ${k * a}x ${k * b >= 0 ? '+' : ''}${k * b}$.`]
         };
       }
     ],
     intermediaire: [
       () => {
-        const a = rndNZ(1, 3);
-        const b = rndNZ(-4, 4);
-        const c = rndNZ(1, 3);
-        const d = rndNZ(-4, 4);
-        const q2 = a * c;
-        const q1 = a * d + b * c;
-        const q0 = b * d;
-        const ans = `${q2 === 1 ? '' : q2 === -1 ? '-' : q2}x^2${q1 >= 0 ? '+' : ''}${q1}x${q0 >= 0 ? '+' : ''}${q0}`;
+        const a = rnd(2, 4);
+        const b = rnd(1, 5);
+        const a2 = a * a;
+        const ab2 = 2 * a * b;
+        const b2 = b * b;
         return {
-          eq: `(${a}x ${b >= 0 ? '+' : ''}${b})(${c}x ${d >= 0 ? '+' : ''}${d})`,
-          instr: "Développer par double distributivité.",
-          ans,
-          steps: [
-            `$(${a}x) \\times (${c}x) = ${q2}x^2$.`,
-            `$(${a}x) \\times (${d}) = ${a * d}x$.`,
-            `$(${b}) \\times (${c}x) = ${b * c}x$.`,
-            `$(${b}) \\times (${d}) = ${q0}$.`,
-            `Réduction : $${q2}x^2 + (${a * d} + ${b * c})x + ${q0} = ${ans}$.`
-          ]
+          eq: `(${a}x + ${b})^2`,
+          instr: "Développer (Identité remarquable).",
+          ans: `${a2}x^2+${ab2}x+${b2}`,
+          steps: [`$(${a}x)^2 + 2 \\times ${a}x \\times ${b} + ${b}^2 = ${a2}x^2 + ${ab2}x + ${b2}$.`]
         };
       }
     ]
   },
-  // Module 2: Factoriser
+  // Module 2: Second degré
   2: {
     debutant: [
       () => {
-        const k = rnd(2, 9);
-        const b = rndNZ(-9, 9);
-        const ans = `${k}(x${b >= 0 ? '+' : ''}${b})`;
+        const x1 = rnd(-5, 5);
+        let x2 = rnd(-5, 5);
+        while (x2 === x1) x2 = rnd(-5, 5);
+        const a = rndNZ(1, 2);
+        const b = -a * (x1 + x2);
+        const c = a * x1 * x2;
+        const delta = b * b - 4 * a * c;
         return {
-          eq: `${k}x ${k * b >= 0 ? '+' : ''}${k * b}`,
-          instr: "Factoriser par le plus grand facteur commun.",
-          ans,
+          eq: `${fmtTerm(a, "x^2")} ${b >= 0 ? '+' : ''}${fmtTerm(b, "x")} ${c >= 0 ? '+' : ''}${c} = 0`,
+          instr: "Calculer le discriminant $\\Delta$ de cette équation.",
+          ans: String(delta),
           steps: [
-            `Le facteur commun est $${k}$.`,
-            `On divise chaque terme par $${k}$ : $x$ et $${b}$.`,
-            `Résultat : $${ans}$.`
-          ]
-        };
-      },
-      () => {
-        const a = rnd(2, 10);
-        const a2 = a * a;
-        return {
-          eq: `x^2 - ${a2}`,
-          instr: "Factoriser (identité remarquable).",
-          ans: `(x-${a})(x+${a})`,
-          aliases: [`(x+${a})(x-${a})`],
-          steps: [
-            `C'est une forme $A^2 - B^2$ avec $A=x$ et $B=${a}$.`,
-            `On applique $(A-B)(A+B)$.`,
-            `Résultat : $(x-${a})(x+${a})$.`
-          ]
-        };
-      }
-    ],
-    intermediaire: [
-      () => {
-        const a = rndNZ(-4, 4);
-        const b = rnd(2, 4);
-        const coeffX = b + 1;
-        return {
-          eq: `(x ${a >= 0 ? '+' : ''}${a})(${b}x + 1) + (x ${a >= 0 ? '+' : ''}${a})`,
-          instr: "Factoriser (attention au terme 'fantôme' !).",
-          ans: `(x${a >= 0 ? '+' : ''}${a})(${b}x+2)`,
-          steps: [
-            `Le facteur commun est $(x ${a >= 0 ? '+' : ''}${a})$.`,
-            `On écrit : $(x ${a >= 0 ? '+' : ''}${a}) [(${b}x + 1) + 1]$.`,
-            `Simplification du crochet : $${b}x + 2$.`,
-            `Résultat : $(x ${a >= 0 ? '+' : ''}${a})(${b}x + 2)$.`
-          ]
-        };
-      }
-    ]
-  },
-  // Module 3: Fractions algébriques
-  3: {
-    debutant: [
-      () => {
-        const k = rnd(2, 7);
-        const a = rndNZ(-5, 5);
-        return {
-          eq: `\\dfrac{${k}x ${k * a >= 0 ? '+' : ''}${k * a}}{${k}}`,
-          instr: "Simplifier la fraction.",
-          ans: `x${a >= 0 ? '+' : ''}${a}`,
-          steps: [
-            `On factorise le numérateur : $${k}(x ${a >= 0 ? '+' : ''}${a})$.`,
-            `On simplifie par $${k}$ en haut et en bas.`,
-            `Résultat : $x ${a >= 0 ? '+' : ''}${a}$.`
-          ]
-        };
-      }
-    ],
-    intermediaire: [
-      () => {
-        const c = rnd(1, 3);
-        return {
-          eq: `\\dfrac{1}{x} + \\dfrac{1}{x + ${c}}`,
-          instr: "Réduire au même dénominateur.",
-          ans: `(2x+${c})/(x(x+${c}))`,
-          steps: [
-            `Le dénominateur commun est $x(x + ${c})$.`,
-            `$\\dfrac{1(x+${c})}{x(x+${c})} + \\dfrac{1(x)}{x(x+${c})}$.`,
-            `$\\dfrac{x+${c}+x}{x(x+${c})} = \\dfrac{2x+${c}}{x(x+${c})}$.`
-          ]
-        };
-      }
-    ]
-  },
-  // Module 4: Équations & inéquations
-  4: {
-    debutant: [
-      () => {
-        let a, b, c, x;
-        while (a === 0 || (c - b) % a !== 0) {
-          a = rndNZ(-5, 5);
-          b = rndNZ(-12, 12);
-          c = rndNZ(-12, 12);
-        }
-        x = (c - b) / a;
-        return {
-          eq: `${a}x ${b >= 0 ? '+' : ''}${b} = ${c}`,
-          instr: "Résoudre l'équation.",
-          ans: String(x),
-          steps: [
-            `On isole le terme en $x$ : $${a}x = ${c} - (${b}) = ${c - b}$.`,
-            `On divise par $${a}$ : $x = \\dfrac{${c - b}}{${a}} = ${x}$.`
+            `$a = ${a}, b = ${b}, c = ${c}$.`,
+            `$\\Delta = b^2 - 4ac = (${b})^2 - 4 \\times ${a} \\times ${c} = ${b*b} - ${4*a*c} = ${delta}$.`
           ]
         };
       }
@@ -361,20 +128,97 @@ export const GENERATORS: Record<number, {
         const x1 = rnd(-5, 5);
         let x2 = rnd(-5, 5);
         while (x2 === x1) x2 = rnd(-5, 5);
-        const a = rndNZ(1, 3);
-        const b = -a * x1;
-        const c = rndNZ(1, 3);
-        const d = -c * x2;
+        const a = 1;
+        const b = -(x1 + x2);
+        const c = x1 * x2;
         return {
-          eq: `(${a}x ${b >= 0 ? '+' : ''}${b})(${c}x ${d >= 0 ? '+' : ''}${d}) = 0`,
-          instr: "Résoudre (Équation produit nul).",
-          ans: `x=${x1} ou x=${x2}`,
-          aliases: [`x=${x2} ou x=${x1}`],
+          eq: `x^2 ${b >= 0 ? '+' : ''}${fmtTerm(b, "x")} ${c >= 0 ? '+' : ''}${c} = 0`,
+          instr: "Trouver les deux racines de l'équation (Format: x1 ou x2).",
+          ans: `${x1} ou ${x2}`,
+          aliases: [`${x2} ou ${x1}`, `x=${x1} ou x=${x2}`, `x=${x2} ou x=${x1}`],
           steps: [
-            `Un produit est nul si l'un de ses facteurs est nul.`,
-            `$${a}x ${b >= 0 ? '+' : ''}${b} = 0 \\implies x = ${x1}$.`,
-            `$${c}x ${d >= 0 ? '+' : ''}${d} = 0 \\implies x = ${x2}$.`,
-            `Solutions : $x = ${x1}$ ou $x = ${x2}$.`
+            `$\\Delta = ${b*b - 4*c}$.`,
+            `$x_1 = \\frac{${-b}-\\sqrt{${b*b - 4*c}}}{2} = ${x1}$.`,
+            `$x_2 = \\frac{${-b}+\\sqrt{${b*b - 4*c}}}{2} = ${x2}$.`
+          ]
+        };
+      }
+    ]
+  },
+  // Module 3: Suites
+  3: {
+    debutant: [
+      () => {
+        const u0 = rnd(1, 10);
+        const r = rnd(2, 6);
+        const n = rnd(3, 10);
+        return {
+          eq: `u_n = ${u0} + n \\times ${r}`,
+          instr: `Calculer le terme $u_{${n}}$ de cette suite arithmétique.`,
+          ans: String(u0 + n * r),
+          steps: [`$u_{${n}} = ${u0} + ${n} \\times ${r} = ${u0} + ${n*r} = ${u0 + n*r}$.`]
+        };
+      },
+      () => {
+        const u0 = rnd(1, 5);
+        const q = rnd(2, 3);
+        const n = rnd(2, 4);
+        return {
+          eq: `u_n = ${u0} \\times ${q}^n`,
+          instr: `Calculer le terme $u_{${n}}$ de cette suite géométrique.`,
+          ans: String(u0 * Math.pow(q, n)),
+          steps: [`$u_{${n}} = ${u0} \\times ${q}^{${n}} = ${u0} \\times ${Math.pow(q, n)} = ${u0 * Math.pow(q, n)}$.`]
+        };
+      }
+    ],
+    intermediaire: [
+      () => {
+        const r = rndNZ(-5, 5);
+        return {
+          eq: `u_{n+1} = u_n ${r >= 0 ? '+' : ''}${r}`,
+          instr: "Quel est le sens de variation de cette suite ?",
+          ans: r > 0 ? "Croissante" : "Décroissante",
+          aliases: [r > 0 ? "croissante" : "décroissante"],
+          steps: [`La raison $r = ${r}$ est ${r > 0 ? 'positive' : 'négative'}.`]
+        };
+      }
+    ]
+  },
+  // Module 4: Dérivation
+  4: {
+    debutant: [
+      () => {
+        const n = rnd(2, 6);
+        return {
+          eq: `f(x) = x^{${n}}`,
+          instr: "Donner l'expression de la dérivée $f'(x)$.",
+          ans: `${n}x^{${n-1}}`,
+          steps: [`On applique la règle $(x^n)' = nx^{n-1}$.`]
+        };
+      },
+      () => {
+        const a = rndNZ(-10, 10);
+        return {
+          eq: `f(x) = ${a}x + 5`,
+          instr: "Calculer $f'(x)$.",
+          ans: String(a),
+          steps: [`La dérivée d'une fonction affine $ax+b$ est son coefficient directeur $a$.`]
+        };
+      }
+    ],
+    intermediaire: [
+      () => {
+        const a = rnd(1, 5);
+        const fa = a * a;
+        const fpa = 2 * a;
+        return {
+          eq: `f(x) = x^2, \\quad a = ${a}`,
+          instr: `Trouver l'équation de la tangente au point d'abscisse $a = ${a}$.`,
+          ans: `y=${fpa}x-${fa}`,
+          steps: [
+            `$f(${a}) = ${a}^2 = ${fa}$.`,
+            `$f'(x) = 2x \\implies f'(${a}) = ${fpa}$.`,
+            `$y = ${fpa}(x - ${a}) + ${fa} = ${fpa}x - ${fpa*a} + ${fa} = ${fpa}x - ${fa}$.`
           ]
         };
       }

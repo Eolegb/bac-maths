@@ -83,29 +83,88 @@ export const MODULES: ModuleData[] = [
   },
   {
     id: 2,
-    title: "Factoriser",
-    sub: "Transformer une somme algébrique en produit de facteurs — la clé pour résoudre des équations complexes.",
+    title: "Second degré",
+    sub: "Étude des fonctions polynomiales de la forme $ax^2+bx+c$, racines et discriminant.",
     rules: [
       {
-        head: "Recherche du facteur commun",
-        body: "Identifier un diviseur ou un groupe commun à tous les termes pour le placer en facteur.",
-        eq: "6x^2 - 9x = 3x(2x - 3) \\quad \\text{et} \\quad (x+2)(2x-1) + (x+2)(x-3) = (x+2)(3x - 4)",
-        piege: "Quand le facteur commun est tout un terme, ne pas oublier le $1$ restant. Ex: $(x+2) + (x+2)(x-3) = (x+2)(1 + x - 3)$.",
+        head: "Discriminant et Racines",
+        body: "Pour résoudre $ax^2 + bx + c = 0$, on calcule le discriminant $\\Delta = b^2 - 4ac$.",
+        eq: "\\Delta = b^2 - 4ac",
+        piege: "Si $\\Delta < 0$, il n'y a pas de racines réelles. Ne pas essayer de calculer $\\sqrt{\\Delta}$.",
         etapes: [
-          "Analyser chaque terme pour repérer un nombre ou une expression en commun.",
-          "Extraire ce facteur commun et ouvrir des crochets.",
-          "Écrire le reste des termes à l'intérieur des crochets, puis simplifier."
+          "Identifier les coefficients $a, b, c$.",
+          "Calculer $\\Delta$.",
+          "Si $\\Delta > 0$, deux racines : $x_1 = \\frac{-b-\\sqrt{\\Delta}}{2a}$ et $x_2 = \\frac{-b+\\sqrt{\\Delta}}{2a}$.",
+          "Si $\\Delta = 0$, une racine double : $x_0 = -\\frac{b}{2a}$."
         ]
       },
       {
-        head: "Factorisation par identité remarquable",
-        body: "Reconnaître une structure de type $a^2 - b^2$ pour la factoriser en produit conjugué.",
-        eq: "a^2 - b^2 = (a - b)(a + b) \\quad \\text{ex:} \\quad 9x^2 - 16 = (3x - 4)(3x + 4)",
-        piege: "Oublier de prendre la racine carrée des coefficients. Ex: $4x^2 - 25$ se factorise en $(2x-5)(2x+5)$, pas $(4x-25)(4x+25)$.",
+        head: "Forme factorisée et canonique",
+        body: "Toute fonction du second degré peut s'écrire sous forme canonique pour faire apparaître le sommet $(\\alpha, \\beta)$.",
+        eq: "f(x) = a(x-\\alpha)^2 + \\beta \\quad \\text{avec} \\quad \\alpha = -\\frac{b}{2a}",
+        piege: "Dans la forme factorisée $a(x-x_1)(x-x_2)$, ne pas oublier le coefficient $a$ devant les parenthèses.",
         etapes: [
-          "Vérifier si l'expression comporte deux termes séparés par un signe moins.",
-          "Prendre la racine carrée de chaque terme pour identifier $a$ et $b$.",
-          "Écrire la forme factorisée : $(a - b)(a + b)$."
+          "Calculer $\\alpha = -b/(2a)$.",
+          "Calculer $\\beta = f(\\alpha)$.",
+          "Écrire la forme $a(x-\\alpha)^2 + \\beta$."
+        ]
+      }
+    ]
+  },
+  {
+    id: 3,
+    title: "Suites Numériques",
+    sub: "Modes de génération, sens de variation et étude des suites arithmétiques et géométriques.",
+    rules: [
+      {
+        head: "Suites Arithmétiques",
+        body: "Une suite est arithmétique si l'on passe d'un terme au suivant en ajoutant toujours le même nombre $r$ (la raison).",
+        eq: "u_{n+1} = u_n + r \\implies u_n = u_0 + n \\times r",
+        piege: "Confondre la raison $r$ avec le premier terme $u_0$.",
+        etapes: [
+          "Vérifier que $u_{n+1} - u_n$ est constant.",
+          "Identifier le premier terme et la raison.",
+          "Utiliser la formule du terme général pour calculer n'importe quel rang."
+        ]
+      },
+      {
+        head: "Suites Géométriques",
+        body: "Une suite est géométrique si l'on passe d'un terme au suivant en multipliant toujours par le même nombre $q$ (la raison).",
+        eq: "u_{n+1} = u_n \\times q \\implies u_n = u_0 \\times q^n",
+        piege: "Attention aux puissances : $q^n$ augmente très vite si $q > 1$ et tend vers $0$ si $0 < q < 1$.",
+        etapes: [
+          "Vérifier que $u_{n+1} / u_n$ est constant.",
+          "Identifier $u_0$ et $q$.",
+          "Appliquer la formule de la somme : $S = \\text{1er terme} \\times \\frac{1-q^{\\text{nb termes}}}{1-q}$."
+        ]
+      }
+    ]
+  },
+  {
+    id: 4,
+    title: "Dérivation",
+    sub: "Calcul du nombre dérivé, étude des variations et équations de tangentes.",
+    rules: [
+      {
+        head: "Dérivées usuelles",
+        body: "Le tableau des dérivées permet de trouver instantanément la pente de la tangente en tout point.",
+        eq: "(x^n)' = n x^{n-1}, \\quad (\\sqrt{x})' = \\frac{1}{2\\sqrt{x}}, \\quad (\\frac{1}{x})' = -\\frac{1}{x^2}",
+        piege: "La dérivée d'une constante est toujours $0$. Ne pas dériver $5$ en $1$ !",
+        etapes: [
+          "Identifier la forme de la fonction.",
+          "Appliquer la règle correspondante du tableau.",
+          "Simplifier l'expression obtenue pour étudier son signe."
+        ]
+      },
+      {
+        head: "Équation de la tangente",
+        body: "La tangente à la courbe de $f$ au point d'abscisse $a$ est une droite dont le coefficient directeur est $f'(a)$.",
+        eq: "y = f'(a)(x - a) + f(a)",
+        piege: "Confondre $f(a)$ (ordonnée) et $f'(a)$ (pente).",
+        etapes: [
+          "Calculer $f(a)$.",
+          "Calculer la dérivée $f'(x)$ puis évaluer $f'(a)$.",
+          "Remplacer dans la formule $y = f'(a)(x-a) + f(a)$."
         ]
       }
     ]
@@ -115,43 +174,38 @@ export const MODULES: ModuleData[] = [
 export const BAC_EXERCISES: Record<number, BacExercise[]> = {
   0: [
     {
-      title: "Sujet Blanc 2026 - Automatismes 1",
-      enonce: "Donner une valeur approchée de l'expression suivante : \n\n $$A = 2 + 10^{-15}$$",
-      correction: "Comme $10^{-15}$ est un nombre extrêmement petit (proche de $0$), on a : \n\n $$2 + 10^{-15} \\approx 2$$",
-      points: ["Compréhension des puissances négatives", "Ordre de grandeur"],
-      keyTerms: ["2", "proche de 0"]
-    },
-    {
-      title: "Sujet Blanc 2026 - Automatismes 2",
-      enonce: "Un article augmente de $20\\%$ puis diminue de $20\\%$. Le prix final est-il égal au prix initial ?",
-      correction: "Non. Augmenter de $20\\%$ revient à multiplier par $1,2$. Diminuer de $20\\%$ revient à multiplier par $0,8$. \n\n Multiplicateur global : $1,2 \\times 0,8 = 0,96$. \n\n Le prix a donc baissé de $4\\%$ ($1 - 0,96 = 0,04$).",
-      points: ["Coefficients multiplicateurs", "Variation globale"],
-      keyTerms: ["0,96", "inférieur", "4%"]
-    },
-    {
-      title: "Sujet Blanc 2026 - Automatismes 3",
-      enonce: "Calculer l'image de $-1$ par la fonction $f(x) = -x^2 + 2x + 3$.",
-      correction: "$f(-1) = -(-1)^2 + 2(-1) + 3$ \n\n $f(-1) = -(1) - 2 + 3$ \n\n $f(-1) = -1 - 2 + 3 = 0$",
-      points: ["Substitution correcte", "Gestion des carrés et signes"],
-      keyTerms: ["0", "f(-1)=0"]
-    }
-  ],
-  1: [
-    {
-      title: "Développement complexe (E3C)",
-      enonce: "Développer et réduire l'expression suivante : \n\n $$C(x) = (2x + 1)(3x - 7)$$ \n\n (Extrait du sujet blanc 2026)",
-      correction: "$C(x) = 2x \\times 3x + 2x \\times (-7) + 1 \\times 3x + 1 \\times (-7)$ \n\n $C(x) = 6x^2 - 14x + 3x - 7$ \n\n $C(x) = 6x^2 - 11x - 7$",
-      points: ["Double distributivité", "Réduction des termes en x"],
-      keyTerms: ["6x^2", "-11x", "-7"]
+      title: "Sujet Blanc 2026 - Automatismes",
+      enonce: "Donner une valeur approchée de $A = 2 + 10^{-15}$ et calculer l'image de $-1$ par $f(x) = -x^2 + 2x + 3$.",
+      correction: "1) $10^{-15}$ est négligeable, donc $A \\approx 2$. \n\n 2) $f(-1) = -(-1)^2 + 2(-1) + 3 = -1 - 2 + 3 = 0$.",
+      points: ["Ordre de grandeur", "Calcul d'image"],
+      keyTerms: ["2", "0"]
     }
   ],
   2: [
     {
-      title: "Géométrie et Factorisation",
-      enonce: "Le quadrilatère $ABCD$ est un carré de côté $4$. On place $M$ sur $[AB]$, $N$ sur $[BC]$, $P$ sur $[CD]$ et $Q$ sur $[DA]$ tels que $AM=BN=CP=DQ=x$. \n\n Montrer que l'aire du carré $MNPQ$ est $f(x) = 2x^2 - 8x + 16$.",
-      correction: "L'aire de $MNPQ$ est l'aire de $ABCD$ ($4^2 = 16$) moins l'aire des 4 triangles rectangles identiques. \n\n Un triangle (ex: $AMQ$) a pour base $x$ et pour hauteur $(4-x)$. \n\n Aire d'un triangle : $\\dfrac{x(4-x)}{2}$. \n\n Somme des 4 triangles : $4 \\times \\dfrac{4x - x^2}{2} = 2(4x - x^2) = 8x - 2x^2$. \n\n Aire $MNPQ = 16 - (8x - 2x^2) = 2x^2 - 8x + 16$.",
-      points: ["Calcul d'aire par soustraction", "Modélisation en fonction de x"],
-      keyTerms: ["16", "2x^2-8x+16"]
+      title: "Optimisation de l'aire (Bac Blanc)",
+      enonce: "Soit $f(x) = 2x^2 - 8x + 16$ l'aire d'un carré $MNPQ$ inscrit dans un carré de côté $4$. \n\n 1) Déterminer les coordonnées du sommet de la parabole. \n 2) En déduire la position de $x$ pour laquelle l'aire est minimale.",
+      correction: "1) $\\alpha = -b/(2a) = -(-8)/(2 \\times 2) = 2$. \n $\\beta = f(2) = 2(2)^2 - 8(2) + 16 = 8 - 16 + 16 = 8$. \n Le sommet est $(2, 8)$. \n\n 2) Comme $a=2 > 0$, l'aire est minimale pour $x=2$ et vaut $8$.",
+      points: ["Calcul de alpha/beta", "Interprétation de l'extremum"],
+      keyTerms: ["2", "8", "minimal"]
+    }
+  ],
+  3: [
+    {
+      title: "Évolution de population (Suite)",
+      enonce: "Une population de bactéries augmente de $20\\%$ chaque jour. On part de $1000$ bactéries. On retire $100$ bactéries chaque soir. \n\n 1) Justifier que $u_{n+1} = 1,2u_n - 100$. \n 2) Calculer la population après 2 jours.",
+      correction: "1) Augmentation de $20\\% \\rightarrow \\times 1,2$. Retrait de $100 \\rightarrow - 100$. \n\n 2) $u_1 = 1,2(1000) - 100 = 1100$. \n $u_2 = 1,2(1100) - 100 = 1320 - 100 = 1220$.",
+      points: ["Modélisation récurrente", "Calcul de termes"],
+      keyTerms: ["1,2", "1100", "1220"]
+    }
+  ],
+  4: [
+    {
+      title: "Étude de fonction exponentielle (Bac)",
+      enonce: "Soit $f(x) = (4x^2 - 14x + 8)e^{0,5x}$. \n\n Montrer que $f'(x) = (2x^2 + x - 10)e^{0,5x}$.",
+      correction: "On utilise $(uv)' = u'v + uv'$ avec $u = 4x^2 - 14x + 8$ et $v = e^{0,5x}$. \n\n $u' = 8x - 14$, $v' = 0,5e^{0,5x}$. \n\n $f'(x) = (8x - 14)e^{0,5x} + (4x^2 - 14x + 8)(0,5e^{0,5x})$ \n\n $f'(x) = e^{0,5x} [8x - 14 + 2x^2 - 7x + 4]$ \n\n $f'(x) = (2x^2 + x - 10)e^{0,5x}$.",
+      points: ["Dérivation d'un produit", "Factorisation par exp"],
+      keyTerms: ["2x^2+x-10", "produit"]
     }
   ]
 };

@@ -512,7 +512,9 @@ export default function App() {
                 {/* Instruction */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[#8888a8]">Consigne</h3>
-                  <p className="text-base text-[#ededf5]">{autoProblem.instr}</p>
+                  <div className="text-base text-[#ededf5]">
+                    <Latex math={autoProblem.instr} />
+                  </div>
                 </div>
 
                 {/* Beautiful Math Display (iPhone responsive & scrollable) */}
@@ -526,6 +528,16 @@ export default function App() {
 
                 {/* Input block */}
                 <div className="space-y-4">
+                  {/* Preview of userInput */}
+                  {userInput && !hasChecked && (
+                    <div className="p-4 bg-slate-900/40 border border-[#252530] rounded-2xl text-center animate-fadeIn">
+                      <span className="text-[10px] text-[#8888a8] uppercase block mb-1 font-mono tracking-wider">Aperçu du calcul :</span>
+                      <div className="text-xl text-[#f0c040]">
+                        <Latex math={userInput} />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-col sm:flex-row gap-3">
                     <input
                       ref={inputRef}
@@ -534,8 +546,6 @@ export default function App() {
                       onChange={(e) => setUserInput(e.target.value)}
                       disabled={hasChecked}
                       placeholder={hasChecked ? "" : "Écrire votre réponse..."}
-                      // inputMode="none" → masque le clavier natif iOS,
-                      // on utilise uniquement notre clavier maths custom
                       inputMode="none"
                       autoComplete="off"
                       autoCorrect="off"
@@ -782,12 +792,13 @@ export default function App() {
         ) : (
           /* ── FICHE MÉMO (FORMULES) ── */
           <div className="space-y-6">
-            
             {/* Memo Intro */}
             <div className="bg-[#131318] p-6 rounded-2xl border border-[#252530] space-y-2">
               <span className="text-[11px] font-mono tracking-widest text-[#f0c040] uppercase">MÉMO DU CHAPITRE</span>
               <h2 className="text-xl font-bold text-white font-['Syne']">{selectedModule.title}</h2>
-              <p className="text-xs text-[#8888a8] leading-relaxed">{selectedModule.sub}</p>
+              <div className="text-xs text-[#8888a8] leading-relaxed">
+                <Latex math={selectedModule.sub} />
+              </div>
             </div>
 
             {/* List of rules & traps */}
@@ -801,7 +812,9 @@ export default function App() {
                     <h3 className="text-sm font-bold text-white">{rule.head}</h3>
                   </div>
 
-                  <p className="text-xs text-[#8888a8] leading-relaxed">{rule.body}</p>
+                  <div className="text-xs text-[#8888a8] leading-relaxed">
+                    <Latex math={rule.body} />
+                  </div>
 
                   {/* Math Rule Equation (iPhone responsive dark container) */}
                   <div className="w-full flex justify-center bg-slate-950/60 border border-slate-900 rounded-xl p-4 shadow-inner relative overflow-hidden group">
@@ -817,7 +830,7 @@ export default function App() {
                     <AlertCircle size={16} className="shrink-0 mt-0.5" />
                     <div>
                       <strong className="block text-[#f05060] font-bold mb-0.5">Piège classique :</strong>
-                      {rule.piege}
+                      <Latex math={rule.piege} />
                     </div>
                   </div>
 
@@ -830,7 +843,7 @@ export default function App() {
                           <span className="font-mono text-[#f0c040] mt-0.5">
                             {stepIdx + 1}.
                           </span>
-                          <span>{step}</span>
+                          <span><Latex math={step} /></span>
                         </li>
                       ))}
                     </ol>

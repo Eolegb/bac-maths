@@ -12,26 +12,42 @@ export const Latex: React.FC<LatexProps> = ({ math, block = false, className = "
 
   useEffect(() => {
     if (containerRef.current) {
-      try {
-        // Strip out enclosing single or double dollar signs for manual renderings if needed
-        let cleanMath = math;
-        if (cleanMath.startsWith("$$") && cleanMath.endsWith("$$")) {
-          cleanMath = cleanMath.slice(2, -2);
-        } else if (cleanMath.startsWith("$") && cleanMath.endsWith("$")) {
-          cleanMath = cleanMath.slice(1, -1);
-        }
+      containerRef.current.innerHTML = "";
+      
+      // Split the string by $$...$$ or $...$
+      // We use a regex with capturing groups to keep the delimiters in the parts array
+      const regex = /(\$\$.*?\$\$|\$.*?\$)/g;
+      const parts = math.split(regex);
 
-        // Replace literal line breaks with appropriate latex formatting or split
-        // For simple equations, just render
-        katex.render(cleanMath, containerRef.current, {
+      if (parts.length === 1 && !math.includes("$")) {
+        // Fallback for strings that are pure math without $ delimiters
+        const span = document.createElement("span");
+        katex.render(math, span, {
           displayMode: block,
           throwOnError: false,
           trust: true
         });
-      } catch (err) {
-        console.error("KaTeX error:", err);
-        containerRef.current.textContent = math;
+        containerRef.current.appendChild(span);
+        return;
       }
+
+      parts.forEach(part => {
+        if (part.startsWith("$$") && part.endsWith("$$")) {
+          const formula = part.slice(2, -2);
+          const span = document.createElement("span");
+          span.className = "katex-display-wrapper";
+          katex.render(formula, span, { displayMode: true, throwOnError: false });
+          containerRef.current?.appendChild(span);
+        } else if (part.startsWith("$") && part.endsWith("$")) {
+          const formula = part.slice(1, -1);
+          const span = document.createElement("span");
+          katex.render(formula, span, { displayMode: false, throwOnError: false });
+          containerRef.current?.appendChild(span);
+        } else if (part) {
+          const textNode = document.createTextNode(part);
+          containerRef.current?.appendChild(textNode);
+        }
+      });
     }
   }, [math, block]);
 

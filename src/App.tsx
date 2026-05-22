@@ -521,7 +521,7 @@ export default function App() {
                 <div className="w-full flex justify-center bg-slate-950/60 border border-slate-900 rounded-2xl p-6 shadow-inner relative overflow-hidden group">
                   <div className="overflow-x-auto max-w-full text-center scrollbar-none">
                     <div className="inline-block py-2 px-1 whitespace-nowrap text-xl sm:text-2xl md:text-3xl text-yellow-400 font-medium">
-                      <Latex math={autoProblem.eq} block={true} />
+                      <Latex math={autoProblem.eq} block={true} forceMath={true} />
                     </div>
                   </div>
                 </div>
@@ -533,7 +533,7 @@ export default function App() {
                     <div className="p-4 bg-slate-900/40 border border-[#252530] rounded-2xl text-center animate-fadeIn">
                       <span className="text-[10px] text-[#8888a8] uppercase block mb-1 font-mono tracking-wider">Aperçu du calcul :</span>
                       <div className="text-xl text-[#f0c040]">
-                        <Latex math={userInput} />
+                        <Latex math={userInput} forceMath={true} />
                       </div>
                     </div>
                   )}
@@ -820,7 +820,7 @@ export default function App() {
                   <div className="w-full flex justify-center bg-slate-950/60 border border-slate-900 rounded-xl p-4 shadow-inner relative overflow-hidden group">
                     <div className="overflow-x-auto max-w-full text-center scrollbar-none">
                       <div className="inline-block whitespace-nowrap text-lg text-white font-medium">
-                        <Latex math={rule.eq} block={true} />
+                        <Latex math={rule.eq} block={true} forceMath={true} />
                       </div>
                     </div>
                   </div>

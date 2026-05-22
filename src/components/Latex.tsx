@@ -5,22 +5,17 @@ interface LatexProps {
   math: string;
   block?: boolean;
   className?: string;
+  forceMath?: boolean;
 }
 
-export const Latex: React.FC<LatexProps> = ({ math, block = false, className = "" }) => {
+export const Latex: React.FC<LatexProps> = ({ math, block = false, className = "", forceMath = false }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.innerHTML = "";
       
-      // Split the string by $$...$$ or $...$
-      // We use a regex with capturing groups to keep the delimiters in the parts array
-      const regex = /(\$\$.*?\$\$|\$.*?\$)/g;
-      const parts = math.split(regex);
-
-      if (parts.length === 1 && !math.includes("$")) {
-        // Fallback for strings that are pure math without $ delimiters
+      if (forceMath) {
         const span = document.createElement("span");
         katex.render(math, span, {
           displayMode: block,
@@ -30,6 +25,9 @@ export const Latex: React.FC<LatexProps> = ({ math, block = false, className = "
         containerRef.current.appendChild(span);
         return;
       }
+
+      const regex = /(\$\$.*?\$\$|\$.*?\$)/g;
+      const parts = math.split(regex);
 
       parts.forEach(part => {
         if (part.startsWith("$$") && part.endsWith("$$")) {
@@ -49,7 +47,7 @@ export const Latex: React.FC<LatexProps> = ({ math, block = false, className = "
         }
       });
     }
-  }, [math, block]);
+  }, [math, block, forceMath]);
 
   return <span ref={containerRef} className={className} />;
 };

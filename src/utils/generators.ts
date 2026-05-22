@@ -4,6 +4,8 @@ export interface MathProblem {
   ans: string;
   aliases?: string[];
   steps: string[];
+  pourquoi: string; // Explication conceptuelle
+  category: string; // Pour le bilan structuré
 }
 
 export function rnd(min: number, max: number): number {
@@ -12,17 +14,8 @@ export function rnd(min: number, max: number): number {
 
 export function rndNZ(min: number, max: number): number {
   let val = 0;
-  while (val === 0) {
-    val = rnd(min, max);
-  }
+  while (val === 0) val = rnd(min, max);
   return val;
-}
-
-export function fmtTerm(coeff: number, variable: string): string {
-  if (coeff === 0) return "";
-  if (coeff === 1) return variable;
-  if (coeff === -1) return `-${variable}`;
-  return `${coeff}${variable}`;
 }
 
 export const GENERATORS: Record<number, {
@@ -33,229 +26,118 @@ export const GENERATORS: Record<number, {
   0: {
     debutant: [
       () => {
-        const a = rndNZ(-20, 20);
-        const b = rndNZ(-20, 20);
+        const a = rndNZ(-15, 15); const b = rndNZ(-15, 15);
         return {
+          category: "Calcul de base",
           eq: `${a < 0 ? `(${a})` : a} + ${b < 0 ? `(${b})` : b}`,
-          instr: "Calculer la somme des deux nombres relatifs.",
+          instr: "Calculer la somme.",
           ans: String(a + b),
-          steps: [`$${a} + ${b} = ${a + b}$.`]
+          steps: [`$${a} + ${b} = ${a + b}$`],
+          pourquoi: "L'addition de deux nombres de signes contraires revient à soustraire leurs valeurs absolues et garder le signe du plus grand."
         };
-      },
+      }
+    ],
+    intermediaire: []
+  },
+  // Module 5: Trigonométrie
+  5: {
+    debutant: [
       () => {
-        const a = rndNZ(-15, 15);
-        const b = rndNZ(-15, 15);
+        const values = [
+          { deg: 0, rad: "0" }, { deg: 30, rad: "\\pi/6" }, { deg: 45, rad: "\\pi/4" }, 
+          { deg: 60, rad: "\\pi/3" }, { deg: 90, rad: "\\pi/2" }, { deg: 180, rad: "\\pi" }
+        ];
+        const v = values[rnd(0, values.length - 1)];
         return {
-          eq: `${a < 0 ? `(${a})` : a} - ${b < 0 ? `(${b})` : b}`,
-          instr: "Calculer la différence.",
-          ans: String(a - b),
-          steps: [`$${a} - (${b}) = ${a - b}$.`]
+          category: "Trigonométrie",
+          eq: `${v.deg}^\\circ`,
+          instr: "Convertir cet angle en radians.",
+          ans: v.rad,
+          steps: [`On applique la règle de proportionnalité : $180^\\circ$ correspond à $\\pi$ rad.`, `Calcul : $${v.deg} \\times \\frac{\\pi}{180} = ${v.rad}$.`],
+          pourquoi: "Le radian mesure la longueur de l'arc de cercle intercepté sur un cercle de rayon 1."
         };
       }
     ],
     intermediaire: [
       () => {
-        const a = rnd(1, 5);
-        const b = rnd(2, 4);
-        const c = rnd(1, 5);
-        const d = rnd(2, 4);
-        const num = a * d + b * c;
-        const den = b * d;
+        const values = [
+          { q: "\\cos(\\pi/3)", a: "1/2" }, { q: "\\sin(\\pi/6)", a: "1/2" },
+          { q: "\\cos(\\pi/4)", a: "\\sqrt{2}/2" }, { q: "\\sin(\\pi/3)", a: "\\sqrt{3}/2" }
+        ];
+        const v = values[rnd(0, values.length - 1)];
         return {
-          eq: `\\dfrac{${a}}{${b}} + \\dfrac{${c}}{${d}}`,
-          instr: "Additionner les fractions.",
-          ans: `${num}/${den}`,
-          steps: [`$\\dfrac{${a*d}}{${den}} + \\dfrac{${b*c}}{${den}} = \\dfrac{${num}}{${den}}$.`]
+          category: "Valeurs remarquables",
+          eq: v.q,
+          instr: "Donner la valeur exacte.",
+          ans: v.a,
+          steps: ["Se référer au cercle trigonométrique."],
+          pourquoi: "Ces valeurs proviennent des propriétés géométriques des triangles équilatéraux et des carrés coupés en deux."
         };
       }
     ]
   },
-  // Module 1: Développer & réduire
-  1: {
+  // Module 6: Produit Scalaire
+  6: {
     debutant: [
       () => {
-        const k = rndNZ(-6, 6);
-        const a = rndNZ(2, 5);
-        const b = rndNZ(-8, 8);
+        const ux = rnd(-5, 5); const uy = rnd(-5, 5);
+        const vx = rnd(-5, 5); const vy = rnd(-5, 5);
+        const res = ux * vx + uy * vy;
         return {
-          eq: `${k}(${a}x ${b >= 0 ? '+' : ''}${b})`,
-          instr: "Développer l'expression.",
-          ans: `${k * a}x${k * b >= 0 ? '+' : ''}${k * b}`,
-          steps: [`$${k} \\times ${a}x + ${k} \\times (${b}) = ${k * a}x ${k * b >= 0 ? '+' : ''}${k * b}$.`]
+          category: "Produit Scalaire",
+          eq: "\\vec{u} \\begin{pmatrix} " + ux + " \\\\ " + uy + " \\end{pmatrix} \\cdot \\vec{v} \\begin{pmatrix} " + vx + " \\\\ " + vy + " \\end{pmatrix}",
+          instr: "Calculer le produit scalaire $\\vec{u} \\cdot \\vec{v}$.",
+          ans: String(res),
+          steps: [`$\\vec{u} \\cdot \\vec{v} = xx' + yy'$`, `$${ux} \\times ${vx} + ${uy} \\times ${vy} = ${ux * vx} + ${uy * vy} = ${res}$.`],
+          pourquoi: "Le produit scalaire mesure à quel point deux vecteurs vont dans la même direction."
         };
       }
     ],
-    intermediaire: [
-      () => {
-        const a = rnd(2, 4);
-        const b = rnd(1, 5);
-        const a2 = a * a;
-        const ab2 = 2 * a * b;
-        const b2 = b * b;
-        return {
-          eq: `(${a}x + ${b})^2`,
-          instr: "Développer (Identité remarquable).",
-          ans: `${a2}x^2+${ab2}x+${b2}`,
-          steps: [`$(${a}x)^2 + 2 \\times ${a}x \\times ${b} + ${b}^2 = ${a2}x^2 + ${ab2}x + ${b2}$.`]
-        };
-      }
-    ]
+    intermediaire: []
   },
-  // Module 2: Second degré
-  2: {
+  // Module 7: Exponentielle
+  7: {
     debutant: [
       () => {
-        const x1 = rnd(-5, 5);
-        let x2 = rnd(-5, 5);
-        while (x2 === x1) x2 = rnd(-5, 5);
-        const a = rndNZ(1, 2);
-        const b = -a * (x1 + x2);
-        const c = a * x1 * x2;
-        const delta = b * b - 4 * a * c;
+        const a = rnd(2, 8); const b = rnd(2, 8);
         return {
-          eq: `${fmtTerm(a, "x^2")} ${b >= 0 ? '+' : ''}${fmtTerm(b, "x")} ${c >= 0 ? '+' : ''}${c} = 0`,
-          instr: "Calculer le discriminant $\\Delta$ de cette équation.",
-          ans: String(delta),
-          steps: [
-            `$a = ${a}, b = ${b}, c = ${c}$.`,
-            `$\\Delta = b^2 - 4ac = (${b})^2 - 4 \\times ${a} \\times ${c} = ${b*b} - ${4*a*c} = ${delta}$.`
-          ]
+          category: "Exponentielle",
+          eq: "e^{" + a + "} \\times e^{" + b + "}",
+          instr: "Simplifier l'expression sous la forme $e^n$.",
+          ans: "e^{" + (a + b) + "}",
+          steps: [`Propriété : $e^a \\times e^b = e^{a+b}$`, `$e^{${a}+${b}} = e^{${a + b}}$`],
+          pourquoi: "La fonction exponentielle transforme les sommes en produits, c'est sa propriété fondamentale."
         };
       }
     ],
-    intermediaire: [
-      () => {
-        const x1 = rnd(-5, 5);
-        let x2 = rnd(-5, 5);
-        while (x2 === x1) x2 = rnd(-5, 5);
-        const a = 1;
-        const b = -(x1 + x2);
-        const c = x1 * x2;
-        return {
-          eq: `x^2 ${b >= 0 ? '+' : ''}${fmtTerm(b, "x")} ${c >= 0 ? '+' : ''}${c} = 0`,
-          instr: "Trouver les deux racines de l'équation (Format: x1 ou x2).",
-          ans: `${x1} ou ${x2}`,
-          aliases: [`${x2} ou ${x1}`, `x=${x1} ou x=${x2}`, `x=${x2} ou x=${x1}`],
-          steps: [
-            `$\\Delta = ${b*b - 4*c}$.`,
-            `$x_1 = \\frac{${-b}-\\sqrt{${b*b - 4*c}}}{2} = ${x1}$.`,
-            `$x_2 = \\frac{${-b}+\\sqrt{${b*b - 4*c}}}{2} = ${x2}$.`
-          ]
-        };
-      }
-    ]
+    intermediaire: []
   },
-  // Module 3: Suites
-  3: {
+  // Module 8: Probabilités
+  8: {
     debutant: [
       () => {
-        const u0 = rnd(1, 10);
-        const r = rnd(2, 6);
-        const n = rnd(3, 10);
+        const pa = 0.1 * rnd(1, 9);
+        const pb_sachant_a = 0.1 * rnd(1, 9);
+        const res = Number((pa * pb_sachant_a).toFixed(2));
         return {
-          eq: `u_n = ${u0} + n \\times ${r}`,
-          instr: `Calculer le terme $u_{${n}}$ de cette suite arithmétique.`,
-          ans: String(u0 + n * r),
-          steps: [`$u_{${n}} = ${u0} + ${n} \\times ${r} = ${u0} + ${n*r} = ${u0 + n*r}$.`]
-        };
-      },
-      () => {
-        const u0 = rnd(1, 5);
-        const q = rnd(2, 3);
-        const n = rnd(2, 4);
-        return {
-          eq: `u_n = ${u0} \\times ${q}^n`,
-          instr: `Calculer le terme $u_{${n}}$ de cette suite géométrique.`,
-          ans: String(u0 * Math.pow(q, n)),
-          steps: [`$u_{${n}} = ${u0} \\times ${q}^{${n}} = ${u0} \\times ${Math.pow(q, n)} = ${u0 * Math.pow(q, n)}$.`]
+          category: "Probabilités conditionnelles",
+          eq: "P(A) = " + pa.toFixed(1) + ", \\quad P_A(B) = " + pb_sachant_a.toFixed(1),
+          instr: "Calculer $P(A \\cap B)$.",
+          ans: String(res),
+          steps: [`$P(A \\cap B) = P(A) \\times P_A(B)$`, `$${pa.toFixed(1)} \\times ${pb_sachant_a.toFixed(1)} = ${res}$`],
+          pourquoi: "C'est la règle du chemin dans un arbre : on multiplie les probabilités rencontrées le long des branches."
         };
       }
     ],
-    intermediaire: [
-      () => {
-        const r = rndNZ(-5, 5);
-        return {
-          eq: `u_{n+1} = u_n ${r >= 0 ? '+' : ''}${r}`,
-          instr: "Quel est le sens de variation de cette suite ?",
-          ans: r > 0 ? "Croissante" : "Décroissante",
-          aliases: [r > 0 ? "croissante" : "décroissante"],
-          steps: [`La raison $r = ${r}$ est ${r > 0 ? 'positive' : 'négative'}.`]
-        };
-      }
-    ]
-  },
-  // Module 4: Dérivation
-  4: {
-    debutant: [
-      () => {
-        const n = rnd(2, 6);
-        return {
-          eq: `f(x) = x^{${n}}`,
-          instr: "Donner l'expression de la dérivée $f'(x)$.",
-          ans: `${n}x^{${n-1}}`,
-          steps: [`On applique la règle $(x^n)' = nx^{n-1}$.`]
-        };
-      },
-      () => {
-        const a = rndNZ(-10, 10);
-        return {
-          eq: `f(x) = ${a}x + 5`,
-          instr: "Calculer $f'(x)$.",
-          ans: String(a),
-          steps: [`La dérivée d'une fonction affine $ax+b$ est son coefficient directeur $a$.`]
-        };
-      }
-    ],
-    intermediaire: [
-      () => {
-        const a = rnd(1, 5);
-        const fa = a * a;
-        const fpa = 2 * a;
-        return {
-          eq: `f(x) = x^2, \\quad a = ${a}`,
-          instr: `Trouver l'équation de la tangente au point d'abscisse $a = ${a}$.`,
-          ans: `y=${fpa}x-${fa}`,
-          steps: [
-            `$f(${a}) = ${a}^2 = ${fa}$.`,
-            `$f'(x) = 2x \\implies f'(${a}) = ${fpa}$.`,
-            `$y = ${fpa}(x - ${a}) + ${fa} = ${fpa}x - ${fpa*a} + ${fa} = ${fpa}x - ${fa}$.`
-          ]
-        };
-      }
-    ]
+    intermediaire: []
   }
 };
 
 export function checkAnswer(userInput: string, correct: string, aliases?: string[]): boolean {
-  const norm = (str: string) => {
-    return str
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/×/g, '*')
-      .replace(/−/g, '-')
-      .replace(/[\u2212\u2013\u2014]/g, '-')
-      .replace(/\^/g, '^')
-      .replace(/ou/g, 'ou')
-      .replace(/;/g, ',')
-      .replace(/\(/g, '(')
-      .replace(/\)/g, ')');
-  };
-
-  const cleanUser = norm(userInput);
-  const cleanCorrect = norm(correct);
-  if (cleanUser === cleanCorrect) return true;
-  if (aliases) {
-    for (const alias of aliases) {
-      if (cleanUser === norm(alias)) return true;
-    }
-  }
-  if (cleanCorrect.includes('ou') && cleanUser.includes('ou')) {
-    const correctParts = cleanCorrect.split('ou').sort();
-    const userParts = cleanUser.split('ou').sort();
-    if (correctParts.length === userParts.length) {
-      return correctParts.every((part, idx) => part === userParts[idx]);
-    }
-  }
+  const norm = (str: string) => str.trim().toLowerCase().replace(/\s+/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+  const cu = norm(userInput);
+  const cc = norm(correct);
+  if (cu === cc) return true;
+  if (aliases) return aliases.some(a => norm(a) === cu);
   return false;
 }

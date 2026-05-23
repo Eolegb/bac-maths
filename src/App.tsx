@@ -5,7 +5,7 @@ import {
   ArrowRight, BookMarked, AlertCircle, LogOut, BrainCircuit, Sparkles
 } from "lucide-react";
 import "katex/dist/katex.min.css";
-import { MODULES, BAC_EXERCISES } from "./data/modules";
+import { MODULES, BAC_EXERCISES, BacExercise } from "./data/modules";
 import { GENERATORS, checkAnswer, rnd } from "./utils/generators";
 import { Latex } from "./components/Latex";
 import { LoginScreen } from "./components/LoginScreen";
@@ -22,6 +22,7 @@ export default function App() {
   const [score, setScore] = useState({ ok: 0, tot: 0 });
   const [streak, setStreak] = useState(0);
   const [autoProblem, setAutoProblem] = useState<any>(null);
+  const [bacProblem, setBacProblem] = useState<BacExercise | null>(null);
   const [userInput, setUserInput] = useState("");
   const [hasChecked, setHasChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -52,15 +53,27 @@ export default function App() {
 
   const generateNewExercise = () => {
     setUserInput(""); setHasChecked(false); setShowExplanation(false);
-    const moduleGens = GENERATORS[currentModuleId];
-    if (moduleGens) {
-      const pool = level === "intermediaire" ? moduleGens.intermediaire : moduleGens.debutant;
-      if (pool.length > 0) setAutoProblem(pool[rnd(0, pool.length - 1)]());
-      else setAutoProblem(null);
+    if (level === "bac") {
+      const pool = BAC_EXERCISES[currentModuleId] || [];
+      if (pool.length > 0) setBacProblem(pool[rnd(0, pool.length - 1)]);
+      else setBacProblem(null);
+      setAutoProblem(null);
+    } else {
+      const moduleGens = GENERATORS[currentModuleId];
+      if (moduleGens) {
+        const pool = level === "intermediaire" ? moduleGens.intermediaire : moduleGens.debutant;
+        if (pool.length > 0) setAutoProblem(pool[rnd(0, pool.length - 1)]());
+        else setAutoProblem(null);
+      }
+      setBacProblem(null);
     }
   };
 
   const handleCheck = () => {
+    if (level === "bac") {
+      setHasChecked(true);
+      return;
+    }
     if (!autoProblem || hasChecked) return;
     const ok = checkAnswer(userInput, autoProblem.ans, autoProblem.aliases);
     setIsCorrect(ok); setHasChecked(true);
@@ -76,6 +89,16 @@ export default function App() {
     });
     setStreak(s => ok ? s + 1 : 0);
     if ((score.tot + 1) % 30 === 0) setShowBilan(true);
+  };
+
+  const handleSelfGrade = (ok: boolean) => {
+    setScore(p => {
+      const n = { ok: p.ok + (ok ? 1 : 0), tot: p.tot + 1 };
+      localStorage.setItem(storageKey(currentUser!, "score"), JSON.stringify(n));
+      return n;
+    });
+    setStreak(s => ok ? s + 1 : 0);
+    generateNewExercise();
   };
 
   const insertSymbol = (s: string) => {
@@ -120,7 +143,31 @@ export default function App() {
               ))}
             </div>
 
-            {autoProblem ? (
+            {level === "bac" ? (
+              bacProblem ? (
+                <div className="bg-[#131318] rounded-3xl border border-amber-400/20 p-6 space-y-6 shadow-2xl">
+                  <h2 className="text-xl font-bold text-amber-400">{bacProblem.title}</h2>
+                  <div className="bg-slate-950/60 p-6 rounded-2xl border border-slate-900 leading-relaxed"><Latex math={bacProblem.enonce} /></div>
+                  {!hasChecked ? (
+                    <button onClick={() => setHasChecked(true)} className="w-full bg-amber-400 text-black font-black py-4 rounded-2xl">Voir la correction</button>
+                  ) : (
+                    <div className="space-y-6 animate-fadeIn">
+                      <div className="p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl space-y-4">
+                        <h3 className="font-bold text-emerald-400 flex items-center gap-2"><CheckCircle2 size={18}/> Correction détaillée</h3>
+                        <div className="text-sm text-gray-300 whitespace-pre-wrap"><Latex math={bacProblem.correction} /></div>
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">S'évaluer :</p>
+                        <div className="flex gap-3">
+                          <button onClick={() => handleSelfGrade(true)} className="flex-1 bg-emerald-500 text-black font-bold py-3 rounded-xl hover:scale-105 transition-transform">Tout compris</button>
+                          <button onClick={() => handleSelfGrade(false)} className="flex-1 bg-rose-500 text-white font-bold py-3 rounded-xl hover:scale-105 transition-transform">À revoir</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : <div className="p-12 text-center text-gray-500 font-bold">Aucun exercice type Bac pour ce module.</div>
+            ) : autoProblem ? (
               <div className="bg-[#131318] rounded-3xl border border-[#252530] p-6 space-y-6 shadow-2xl overflow-hidden">
                 <div className="flex justify-between items-center opacity-50 font-mono text-[10px] uppercase">
                   <span>{autoProblem.category}</span>
@@ -142,7 +189,7 @@ export default function App() {
                     <div className="text-center p-2 bg-amber-400/5 rounded-xl border border-amber-400/10 text-amber-400 text-xl font-mono"><Latex math={userInput} forceMath /></div>
                   )}
                   <div className="flex gap-3">
-                    <input ref={inputRef} value={userInput} onChange={e => setUserInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (hasChecked ? generateNewExercise() : handleCheck())} disabled={hasChecked} className={`flex-1 bg-[#1a1a22] border-2 rounded-2xl py-4 px-6 text-2xl font-mono focus:outline-none transition-all ${hasChecked ? (isCorrect ? 'border-emerald-500 text-emerald-400' : 'border-rose-500 text-rose-400') : 'border-[#32323f] focus:border-amber-400'}`} placeholder="Réponse..." />
+                    <input ref={inputRef} value={userInput} onChange={e => setUserInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (hasChecked ? generateNewExercise() : handleCheck())} disabled={hasChecked} className={`flex-1 bg-[#1a1a22] border-2 rounded-xl py-4 px-6 text-2xl font-mono focus:outline-none transition-all ${hasChecked ? (isCorrect ? 'border-emerald-500 text-emerald-400' : 'border-rose-500 text-rose-400') : 'border-[#32323f] focus:border-amber-400'}`} placeholder="Réponse..." />
                     <button onClick={hasChecked ? generateNewExercise : handleCheck} className="bg-amber-400 text-black font-black px-8 rounded-2xl hover:scale-105 transition-transform">{hasChecked ? <ArrowRight/> : "OK"}</button>
                   </div>
                   {!hasChecked && <MathKeyboard onSymbolClick={insertSymbol} onBackspace={() => setUserInput(s => s.slice(0,-1))} onClear={() => setUserInput("")} />}
@@ -161,10 +208,10 @@ export default function App() {
                   )}
                 </div>
               </div>
-            ) : <div className="p-12 text-center text-gray-600 font-bold uppercase tracking-widest border-2 border-dashed border-[#252530] rounded-3xl">Module en cours de chargement...</div>}
+            ) : <div className="p-12 text-center text-gray-600 font-bold uppercase tracking-widest border-2 border-dashed border-[#252530] rounded-3xl">Aucun exercice disponible pour ce niveau.</div>}
           </div>
         ) : (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn pb-20">
             <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-8 rounded-3xl text-black shadow-xl">
               <h2 className="text-3xl font-black mb-2">{module.title}</h2>
               <p className="font-bold opacity-80">{module.sub}</p>

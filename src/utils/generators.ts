@@ -4,8 +4,12 @@ export interface MathProblem {
   ans: string;
   aliases?: string[];
   steps: string[];
-  pourquoi: string; // Explication conceptuelle
-  category: string; // Pour le bilan structuré
+  pourquoi: string;
+  category: string;
+  plot?: {
+    type: "function" | "cercle" | "vector";
+    data: any;
+  };
 }
 
 export function rnd(min: number, max: number): number {
@@ -22,7 +26,7 @@ export const GENERATORS: Record<number, {
   debutant: (() => MathProblem)[];
   intermediaire: (() => MathProblem)[];
 }> = {
-  // Module 0: Signes & Priorités
+  // Module 0: Calculs
   0: {
     debutant: [
       () => {
@@ -33,99 +37,55 @@ export const GENERATORS: Record<number, {
           instr: "Calculer la somme.",
           ans: String(a + b),
           steps: [`$${a} + ${b} = ${a + b}$`],
-          pourquoi: "L'addition de deux nombres de signes contraires revient à soustraire leurs valeurs absolues et garder le signe du plus grand."
+          pourquoi: "C'est l'addition fondamentale des nombres relatifs."
         };
       }
     ],
     intermediaire: []
   },
-  // Module 5: Trigonométrie
-  5: {
+  // Module 1: Second Degré (VISUEL)
+  1: {
     debutant: [
       () => {
-        const values = [
-          { deg: 0, rad: "0" }, { deg: 30, rad: "\\pi/6" }, { deg: 45, rad: "\\pi/4" }, 
-          { deg: 60, rad: "\\pi/3" }, { deg: 90, rad: "\\pi/2" }, { deg: 180, rad: "\\pi" }
-        ];
-        const v = values[rnd(0, values.length - 1)];
+        const x1 = rnd(-3, 0); const x2 = rnd(1, 3);
+        const a = rndNZ(1, 1);
+        const b = -a * (x1 + x2);
+        const c = a * x1 * x2;
         return {
-          category: "Trigonométrie",
-          eq: `${v.deg}^\\circ`,
-          instr: "Convertir cet angle en radians.",
-          ans: v.rad,
-          steps: [`On applique la règle de proportionnalité : $180^\\circ$ correspond à $\\pi$ rad.`, `Calcul : $${v.deg} \\times \\frac{\\pi}{180} = ${v.rad}$.`],
-          pourquoi: "Le radian mesure la longueur de l'arc de cercle intercepté sur un cercle de rayon 1."
+          category: "Paraboles",
+          eq: `f(x) = x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`,
+          instr: "Trouver les deux racines.",
+          ans: `${x1} ou ${x2}`,
+          aliases: [`${x2} ou ${x1}`],
+          steps: [`$\Delta = b^2 - 4ac$`, `Appliquer les formules.`],
+          pourquoi: "Graphiquement, ce sont les points où la courbe traverse l'axe horizontal.",
+          plot: {
+            type: "function",
+            data: { fn: (x:number) => x*x + b*x + c, domain: [-5, 5], range: [-10, 10], points: [{x:x1, y:0}, {x:x2, y:0}] }
+          }
         };
       }
     ],
-    intermediaire: [
-      () => {
-        const values = [
-          { q: "\\cos(\\pi/3)", a: "1/2" }, { q: "\\sin(\\pi/6)", a: "1/2" },
-          { q: "\\cos(\\pi/4)", a: "\\sqrt{2}/2" }, { q: "\\sin(\\pi/3)", a: "\\sqrt{3}/2" }
-        ];
-        const v = values[rnd(0, values.length - 1)];
-        return {
-          category: "Valeurs remarquables",
-          eq: v.q,
-          instr: "Donner la valeur exacte.",
-          ans: v.a,
-          steps: ["Se référer au cercle trigonométrique."],
-          pourquoi: "Ces valeurs proviennent des propriétés géométriques des triangles équilatéraux et des carrés coupés en deux."
-        };
-      }
-    ]
+    intermediaire: []
   },
-  // Module 6: Produit Scalaire
+  // Module 6: Trigonométrie (VISUEL)
   6: {
     debutant: [
       () => {
-        const ux = rnd(-5, 5); const uy = rnd(-5, 5);
-        const vx = rnd(-5, 5); const vy = rnd(-5, 5);
-        const res = ux * vx + uy * vy;
+        const angles = [
+          { deg: 30, rad: "\\pi/6", v: Math.PI/6 },
+          { deg: 120, rad: "2\\pi/3", v: 2*Math.PI/3 },
+          { deg: 225, rad: "5\\pi/4", v: 5*Math.PI/4 }
+        ];
+        const a = angles[rnd(0, angles.length-1)];
         return {
-          category: "Produit Scalaire",
-          eq: "\\vec{u} \\begin{pmatrix} " + ux + " \\\\ " + uy + " \\end{pmatrix} \\cdot \\vec{v} \\begin{pmatrix} " + vx + " \\\\ " + vy + " \\end{pmatrix}",
-          instr: "Calculer le produit scalaire $\\vec{u} \\cdot \\vec{v}$.",
-          ans: String(res),
-          steps: [`$\\vec{u} \\cdot \\vec{v} = xx' + yy'$`, `$${ux} \\times ${vx} + ${uy} \\times ${vy} = ${ux * vx} + ${uy * vy} = ${res}$.`],
-          pourquoi: "Le produit scalaire mesure à quel point deux vecteurs vont dans la même direction."
-        };
-      }
-    ],
-    intermediaire: []
-  },
-  // Module 7: Exponentielle
-  7: {
-    debutant: [
-      () => {
-        const a = rnd(2, 8); const b = rnd(2, 8);
-        return {
-          category: "Exponentielle",
-          eq: "e^{" + a + "} \\times e^{" + b + "}",
-          instr: "Simplifier l'expression sous la forme $e^n$.",
-          ans: "e^{" + (a + b) + "}",
-          steps: [`Propriété : $e^a \\times e^b = e^{a+b}$`, `$e^{${a}+${b}} = e^{${a + b}}$`],
-          pourquoi: "La fonction exponentielle transforme les sommes en produits, c'est sa propriété fondamentale."
-        };
-      }
-    ],
-    intermediaire: []
-  },
-  // Module 8: Probabilités
-  8: {
-    debutant: [
-      () => {
-        const pa = 0.1 * rnd(1, 9);
-        const pb_sachant_a = 0.1 * rnd(1, 9);
-        const res = Number((pa * pb_sachant_a).toFixed(2));
-        return {
-          category: "Probabilités conditionnelles",
-          eq: "P(A) = " + pa.toFixed(1) + ", \\quad P_A(B) = " + pb_sachant_a.toFixed(1),
-          instr: "Calculer $P(A \\cap B)$.",
-          ans: String(res),
-          steps: [`$P(A \\cap B) = P(A) \\times P_A(B)$`, `$${pa.toFixed(1)} \\times ${pb_sachant_a.toFixed(1)} = ${res}$`],
-          pourquoi: "C'est la règle du chemin dans un arbre : on multiplie les probabilités rencontrées le long des branches."
+          category: "Cercle Trigo",
+          eq: `${a.deg}^\\circ`,
+          instr: "Convertir en radians.",
+          ans: a.rad,
+          steps: [`Calculer ${a.deg} \times \pi / 180$.`],
+          pourquoi: "Regardez la position de l'angle sur le cercle : il définit un point précis.",
+          plot: { type: "cercle", data: { angle: a.v } }
         };
       }
     ],
@@ -134,10 +94,8 @@ export const GENERATORS: Record<number, {
 };
 
 export function checkAnswer(userInput: string, correct: string, aliases?: string[]): boolean {
-  const norm = (str: string) => str.trim().toLowerCase().replace(/\s+/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
-  const cu = norm(userInput);
-  const cc = norm(correct);
-  if (cu === cc) return true;
-  if (aliases) return aliases.some(a => norm(a) === cu);
-  return false;
+  const norm = (s:string) => s.trim().toLowerCase().replace(/\s+/g,'').replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+  const u = norm(userInput);
+  const c = norm(correct);
+  return u === c || (aliases?.some(a => norm(a) === u) ?? false);
 }

@@ -1,3 +1,5 @@
+import { derivative, simplify, parse } from "mathjs";
+
 export interface MathProblem {
   eq: string;
   instr: string;
@@ -22,6 +24,35 @@ export function rndNZ(min: number, max: number): number {
   return val;
 }
 
+function derTex(expr: string): string {
+  const d = derivative(parse(expr), "x");
+  const s = simplify(d);
+  return s.toTex().replace(/\\cdot /g, "").replace(/\\,/g, "").replace(/\~/g, "");
+}
+
+function cleanForMathJS(s: string): string {
+  return s
+    .replace(/\\text\{([^}]*)\}/g, "$1")
+    .replace(/\\/g, "")
+    .replace(/\{|\}/g, "")
+    .replace(/×/g, "*")
+    .replace(/÷/g, "/")
+    .replace(/−/g, "-")
+    .replace(/,/g, ".")
+    .replace(/\s+/g, "");
+}
+
+function areExprEqual(a: string, b: string): boolean {
+  try {
+    const na = cleanForMathJS(a);
+    const nb = cleanForMathJS(b);
+    const diff = simplify(parse(`${na} - (${nb})`));
+    return diff.toString().replace(/\s+/g, "") === "0";
+  } catch {
+    return false;
+  }
+}
+
 export const GENERATORS: Record<number, {
   debutant: (() => MathProblem)[];
   intermediaire: (() => MathProblem)[];
@@ -31,15 +62,15 @@ export const GENERATORS: Record<number, {
     debutant: [
       () => {
         const n = rnd(2, 6);
-        const coef = [2, 3, 4, 5, -2, -3][rnd(0, 5)];
-        const res = coef * n;
+        const coef: number = [2, 3, 4, 5, -2, -3][rnd(0, 5)];
+        const expr = `${coef}x^${n}`;
+        const ans = derTex(expr);
         return {
           category: "Puissances",
-          eq: `f(x) = ${coef}x^${n}`,
+          eq: `f(x) = ${expr}`,
           instr: "Calculer $f'(x)$.",
-          ans: `${res}x^${n-1}`,
-          aliases: [`${res}x^{${n - 1}}`],
-          steps: [`$(x^${n})' = ${n}x^{${n-1}}$`, `$f'(x) = ${coef} \\times ${n}x^{${n-1}} = ${res}x^{${n-1}}$`],
+          ans,
+          steps: [`$(x^${n})' = ${n}x^{${n - 1}}$`, `$f'(x) = ${coef} \\times ${n}x^{${n - 1}} = ${ans}$`],
           pourquoi: "On descend l'exposant devant et on le réduit de 1. Le coefficient reste."
         };
       },
@@ -47,12 +78,14 @@ export const GENERATORS: Record<number, {
         const a = rndNZ(-5, 5);
         const b = rndNZ(-5, 5);
         const c = rndNZ(-5, 5);
+        const expr = `${a}x^3 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c}`;
+        const ans = derTex(expr);
         return {
           category: "Somme de fonctions",
-          eq: `f(x) = ${a}x^3 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`,
+          eq: `f(x) = ${expr}`,
           instr: "Calculer $f'(x)$.",
-          ans: `${3 * a}x^2 ${b >= 0 ? '+' : ''}${b}`,
-          steps: [`$(x^3)' = 3x^2$, $(${b}x)' = ${b}$, $(${c})' = 0$`, `$f'(x) = ${3 * a}x^2 ${b >= 0 ? '+' : ''}${b}$`],
+          ans,
+          steps: [`$(x^3)' = 3x^2$, $(${b}x)' = ${b}$, $(${c})' = 0$`, `$f'(x) = ${ans}$`],
           pourquoi: "On dérive chaque terme séparément. La dérivée d'une constante est toujours 0."
         };
       },
@@ -72,15 +105,14 @@ export const GENERATORS: Record<number, {
       () => {
         const a = rndNZ(-3, 3);
         const b = rndNZ(-4, 4);
-        const resA = 3 * a;
-        const resB = 2 * b;
+        const expr = `(${a}x ${b >= 0 ? "+" : ""}${b}) * x^2`;
+        const ans = derTex(expr);
         return {
           category: "Produit uv",
-          eq: `f(x) = (${a}x ${b >= 0 ? '+' : ''}${b}) \\times x^2`,
+          eq: `f(x) = (${a}x ${b >= 0 ? "+" : ""}${b}) \\times x^2`,
           instr: "Calculer $f'(x)$ en utilisant la formule du produit.",
-          ans: `${resA}x^2 ${resB >= 0 ? '+' : ''}${resB}x`,
-          aliases: [`${resA}x^{2} ${resB >= 0 ? '+' : ''}${resB}x`],
-          steps: [`$u = ${a}x ${b >= 0 ? '+' : ''}${b}$, $u' = ${a}$`, `$v = x^2$, $v' = 2x$`, `$f' = u'v + uv' = ${a} \\cdot x^2 + (${a}x ${b >= 0 ? '+' : ''}${b}) \\cdot 2x = ${a}x^2 + ${2*a}x^2 ${2*b >= 0 ? '+' : ''}${2*b}x$`, `$= ${resA}x^2 ${resB >= 0 ? '+' : ''}${resB}x$`],
+          ans,
+          steps: [`$u = ${a}x ${b >= 0 ? "+" : ""}${b}$, $u' = ${a}$`, `$v = x^2$, $v' = 2x$`, `$f' = u'v + uv' = ${a} \\cdot x^2 + (${a}x ${b >= 0 ? "+" : ""}${b}) \\cdot 2x$`, `$= ${ans}$`],
           pourquoi: "Ne jamais dériver chaque facteur séparément. Toujours appliquer u'v + uv' et développer."
         };
       },
@@ -94,7 +126,7 @@ export const GENERATORS: Record<number, {
           eq: `f'(x) = ${mstr}`,
           instr: `Quel est le sens de variation de $f$ ? (justifier avec le signe de $f'$)`,
           ans: crois,
-          steps: [`$f'(x) = ${mstr}$ est ${sign ? 'positif' : 'négatif'} pour tout $x$.`, `Donc $f$ est ${crois} sur $\\mathbb{R}$.`],
+          steps: [`$f'(x) = ${mstr}$ est ${sign ? "positif" : "négatif"} pour tout $x$.`, `Donc $f$ est ${crois} sur $\\mathbb{R}$.`],
           pourquoi: "Le signe de la dérivée donne le sens de variation. Si f' est positive, f monte. Si f' est négative, f descend."
         };
       },
@@ -102,15 +134,16 @@ export const GENERATORS: Record<number, {
         const a = rndNZ(-3, 3);
         const b = rndNZ(-5, 5);
         const c = rndNZ(-2, 2);
-        const fprime = `${2 * a}x ${b >= 0 ? '+' : ''}${b}`;
+        const expr = `${a}x^2 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c}`;
+        const ansDer = derTex(expr);
         const rac = -b / (2 * a);
         const sign = a > 0;
         return {
           category: "Tableau de variations",
-          eq: `f(x) = ${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`,
+          eq: `f(x) = ${expr}`,
           instr: `Donner le tableau de variations de $f$ (sens de variation avant/apr\u00e8s le sommet).`,
-          ans: `${sign ? 'décroissante puis croissante' : 'croissante puis décroissante'}`,
-          steps: [`$f'(x) = ${fprime}$`, `$f'(x) = 0 \\iff x = ${Math.round(rac * 10) / 10}$`, `$a = ${a} ${sign ? '> 0' : '< 0'}$ donc ${sign ? 'd\u00e9croissante avant le sommet, croissante apr\u00e8s' : 'croissante avant, d\u00e9croissante apr\u00e8s'}.`],
+          ans: `${sign ? "décroissante puis croissante" : "croissante puis décroissante"}`,
+          steps: [`$f'(x) = ${ansDer}$`, `$f'(x) = 0 \\iff x = ${Math.round(rac * 10) / 10}$`, `$a = ${a} ${sign ? "> 0" : "< 0"}$ donc ${sign ? "d\u00e9croissante avant le sommet, croissante apr\u00e8s" : "croissante avant, d\u00e9croissante apr\u00e8s"}.`],
           pourquoi: "Pour un trinôme, le signe de a détermine tout : a > 0 → parabole en U (décroît puis croît), a < 0 → parabole en ∩.",
           plot: {
             type: "function",
@@ -162,31 +195,30 @@ export const GENERATORS: Record<number, {
     ],
     intermediaire: [
       () => {
-        const coefs = [1, 2, 3, -2, -3];
-        const k = coefs[rnd(0, coefs.length - 1)];
+        const k = [1, 2, 3, -2, -3][rnd(0, 4)];
+        const expr = `e^(${k}x)`;
+        const ans = derTex(expr);
         return {
           category: "Dérivée e^u",
           eq: `f(x) = e^{${k}x}`,
           instr: "Calculer $f'(x)$.",
-          ans: `${k}e^{${k}x}`,
-          steps: [`$u(x) = ${k}x$, $u'(x) = ${k}$`, `$f'(x) = u' \\cdot e^u = ${k} \\cdot e^{${k}x}$`],
+          ans,
+          steps: [`$u(x) = ${k}x$, $u'(x) = ${k}$`, `$f'(x) = u' \\cdot e^u = ${ans}$`],
           pourquoi: "La dérivée de e^u est u' × e^u. On dérive l'exposant et on le place devant."
         };
       },
       () => {
-        const a = rnd(2, 5);
-        const b = rndNZ(-4, 4);
-        const c = rndNZ(-3, 3);
-        const coeff = a * 2;
-        const uPrime = b === 0 ? `${coeff}x` : `${coeff}x ${b >= 0 ? '+' : ''}${b}`;
-        const poly = `${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`;
+        const a = rnd(2, 4);
+        const expr = `e^(${a}x^2)`;
+        const ans = derTex(expr);
         return {
           category: "Dérivée e^u (composée)",
-          eq: `f(x) = e^{${poly}}`,
+          eq: `f(x) = e^{${a}x^2}`,
           instr: "Calculer $f'(x)$.",
-          ans: `(${uPrime})e^{${poly}}`,
-          steps: [`$u(x) = ${poly}$`, `$u'(x) = ${uPrime}$`, `$f'(x) = u' \\cdot e^u = (${uPrime})e^{${poly}}$`],
-          pourquoi: "On dérive l'exposant (comme un polynôme classique) et on le colle devant l'exponentielle. La constante c disparaît dans u'."
+          ans,
+          aliases: [`${2 * a}xe^{${a}x^2}`, `${2 * a}x \\cdot e^{${a}x^2}`],
+          steps: [`$u(x) = ${a}x^2$, $u'(x) = ${2 * a}x$`, `$f'(x) = u' \\cdot e^u = ${ans}$`],
+          pourquoi: "On dérive l'exposant avec la règle des puissances puis on le place devant l'exponentielle."
         };
       },
       () => {
@@ -196,10 +228,10 @@ export const GENERATORS: Record<number, {
         const rhs = a * target + b;
         return {
           category: "Équation",
-          eq: `e^{${a}x ${b >= 0 ? '+' : ''}${b}} = e^{${rhs}}`,
+          eq: `e^{${a}x ${b >= 0 ? "+" : ""}${b}} = e^{${rhs}}`,
           instr: "Résoudre l'équation.",
           ans: String(target),
-          steps: [`$e^A = e^B \\iff A = B$`, `$${a}x ${b >= 0 ? '+' : ''}${b} = ${rhs}$`, `$${a}x = ${rhs - b}$, $x = ${target}$`],
+          steps: [`$e^A = e^B \\iff A = B$`, `$${a}x ${b >= 0 ? "+" : ""}${b} = ${rhs}$`, `$${a}x = ${rhs - b}$, $x = ${target}$`],
           pourquoi: "Deux exponentielles sont égales si et seulement si leurs exposants sont égaux. L'exponentielle est injective."
         };
       }
@@ -219,7 +251,7 @@ export const GENERATORS: Record<number, {
           eq: `u_0 = ${u0}, \\quad r = ${r}`,
           instr: `Calculer $u_{${n}}$ (suite arithmétique).`,
           ans: String(un),
-          steps: [`$u_n = u_0 + nr$`, `$u_{${n}} = ${u0} + ${n} \\times ${r < 0 ? '(' + r + ')' : r} = ${un}$`],
+          steps: [`$u_n = u_0 + nr$`, `$u_{${n}} = ${u0} + ${n} \\times ${r < 0 ? "(" + r + ")" : r} = ${un}$`],
           pourquoi: "Pour une suite arithmétique, on ajoute n fois la raison au terme initial."
         };
       },
@@ -269,7 +301,7 @@ export const GENERATORS: Record<number, {
           eq: `u_0 = ${u0}, \\quad r = ${r}`,
           instr: `Calculer la somme $S = u_0 + u_1 + \\cdots + u_{${n}}$ (${n + 1} termes).`,
           ans: String(sumArith),
-          steps: [`$u_{${n}} = u_0 + nr = ${u0} + ${n} \\times ${r} = ${un}$`, `Nombre de termes : ${n + 1}`, `$S = (\\text{nb}) \\times \\frac{u_{\\text{premier}} + u_{\\text{dernier}}}{2} = ${n + 1} \\times \\frac{${u0} + ${un}}{2} = ${sumArith}$`],
+          steps: [`$u_{${n}} = u_0 + nr = ${un}$`, `Nombre de termes : ${n + 1}`, `$S = (\\text{nb}) \\times \\frac{u_{\\text{premier}} + u_{\\text{dernier}}}{2} = ${n + 1} \\times \\frac{${u0} + ${un}}{2} = ${sumArith}$`],
           pourquoi: "Somme arithmétique = moyenne des extrêmes × nombre de termes. Attention : de u_0 à u_n, il y a n+1 termes."
         };
       },
@@ -283,7 +315,7 @@ export const GENERATORS: Record<number, {
           eq: `u_0 = ${u0}, \\quad q = ${q}`,
           instr: `Calculer la somme $S = u_0 + u_1 + \\cdots + u_{${n}}$.`,
           ans: String(sumGeo),
-          steps: [`$S = u_0 \\times \\frac{1 - q^{\\text{nb}}}{1 - q}$`, `$= ${u0} \\times \\frac{1 - ${q}^{${n + 1}}}{1 - ${q}} = ${u0} \\times \\frac{1 - ${Math.pow(q, n + 1)}}{-1}$`, `$= ${u0} \\times ${Math.pow(q, n + 1) - 1} = ${sumGeo}$`],
+          steps: [`$S = u_0 \\times \\frac{1 - q^{\\text{nb}}}{1 - q}$`, `$= ${u0} \\times \\frac{1 - ${q}^{${n + 1}}}{1 - ${q}} = ${sumGeo}$`],
           pourquoi: "Formule de la somme géométrique. Attention au nombre de termes (n+1 si on commence à u_0)."
         };
       },
@@ -292,10 +324,10 @@ export const GENERATORS: Record<number, {
         const sens = r > 0 ? "croissante" : r < 0 ? "décroissante" : "constante";
         return {
           category: "Monotonie",
-          eq: `u_{n+1} = u_n ${r >= 0 ? '+' : ''}${r}`,
+          eq: `u_{n+1} = u_n ${r >= 0 ? "+" : ""}${r}`,
           instr: "Déterminer le sens de variation de cette suite.",
           ans: sens,
-          steps: [`$u_{n+1} - u_n = ${r}$`, `Signe de la différence : ${r > 0 ? 'positif' : r < 0 ? 'négatif' : 'nul'}.`, `Donc la suite est ${sens}.`],
+          steps: [`$u_{n+1} - u_n = ${r}$`, `Signe de la différence : ${r > 0 ? "positif" : r < 0 ? "négatif" : "nul"}.`, `Donc la suite est ${sens}.`],
           pourquoi: "Pour une suite arithmétique, la variation dépend directement du signe de la raison r."
         };
       }
@@ -306,20 +338,19 @@ export const GENERATORS: Record<number, {
   3: {
     debutant: [
       () => {
-        const a = 1;
         const x1 = rnd(-3, -1);
         const x2 = rnd(1, 3);
         const b = -(x1 + x2);
         const c = x1 * x2;
-        const delta = b * b - 4 * a * c;
+        const delta = b * b - 4 * c;
         return {
           category: "Racines (discriminant)",
-          eq: `x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c} = 0`,
+          eq: `x^2 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c} = 0`,
           instr: "Trouver les deux racines de cette équation.",
           ans: `${x1} et ${x2}`,
           aliases: [`${x1} ou ${x2}`, `${x2} et ${x1}`, `${x2} ou ${x1}`],
-          steps: [`$\\Delta = ${b}^2 - 4 \\times 1 \\times ${c < 0 ? '(' + c + ')' : c} = ${b * b} ${-4 * c >= 0 ? '+' : ''}${-4 * c} = ${delta}$`, `$\\sqrt{\\Delta} = ${Math.round(Math.sqrt(delta))}$`, `$x_1 = \\frac{${-b} - ${Math.round(Math.sqrt(delta))}}{2} = ${x1}$, $x_2 = \\frac{${-b} + ${Math.round(Math.sqrt(delta))}}{2} = ${x2}$`],
-          pourquoi: "On calcule Δ puis les racines avec la formule -b ± √Δ / 2a. Le discriminant permet de savoir combien de solutions existent.",
+          steps: [`$\\Delta = ${b}^2 - 4 \\times 1 \\times ${c < 0 ? "(" + c + ")" : c} = ${delta}$`, `$\\sqrt{\\Delta} = ${Math.round(Math.sqrt(delta))}$`, `$x_1 = \\frac{${-b} - ${Math.round(Math.sqrt(delta))}}{2} = ${x1}$, $x_2 = \\frac{${-b} + ${Math.round(Math.sqrt(delta))}}{2} = ${x2}$`],
+          pourquoi: "On calcule Δ puis les racines avec la formule -b ± √Δ / 2a.",
           plot: {
             type: "function",
             data: { fn: (x: number) => x * x + b * x + c, domain: [-6, 6], range: [-6, 10], points: [{ x: x1, y: 0 }, { x: x2, y: 0 }] }
@@ -333,11 +364,11 @@ export const GENERATORS: Record<number, {
         const c = alpha * alpha + beta;
         return {
           category: "Sommet (alpha)",
-          eq: `f(x) = x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`,
+          eq: `f(x) = x^2 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c}`,
           instr: "Donner l'abscisse $\\alpha$ du sommet de cette parabole.",
           ans: String(alpha),
           steps: [`$\\alpha = -\\dfrac{b}{2a} = -\\dfrac{${b}}{2 \\times 1} = ${alpha}$`],
-          pourquoi: "L'abscisse du sommet se calcule avec α = -b/(2a). Le sommet est le point où la parabole change de sens.",
+          pourquoi: "L'abscisse du sommet se calcule avec α = -b/(2a).",
           plot: {
             type: "function",
             data: { fn: (x: number) => x * x + b * x + c, domain: [-6, 6], range: [-10, 8], points: [{ x: alpha, y: beta, color: "#f0c040" }] }
@@ -349,7 +380,7 @@ export const GENERATORS: Record<number, {
         const b = rndNZ(-6, 6);
         return {
           category: "Calcul de Δ",
-          eq: `f(x) = ${a}x^2 ${b >= 0 ? '+' : ''}${b}x`,
+          eq: `f(x) = ${a}x^2 ${b >= 0 ? "+" : ""}${b}x`,
           instr: "Calculer le discriminant $\\Delta$ de ce trinôme (avec $c=0$).",
           ans: String(b * b),
           steps: [`$a = ${a}$, $b = ${b}$, $c = 0$`, `$\\Delta = b^2 - 4ac = ${b}^2 - 4 \\times ${a} \\times 0 = ${b * b}$`],
@@ -366,9 +397,9 @@ export const GENERATORS: Record<number, {
         const c = a * alpha * alpha + beta;
         return {
           category: "Forme canonique",
-          eq: `f(x) = ${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`,
+          eq: `f(x) = ${a}x^2 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c}`,
           instr: "Mettre $f$ sous forme canonique $a(x - \\alpha)^2 + \\beta$.",
-          ans: `${a}(x ${alpha >= 0 ? '-' : '+'}${Math.abs(alpha)})^2 ${beta >= 0 ? '+' : ''}${beta}`,
+          ans: `${a}(x ${alpha >= 0 ? "-" : "+"}${Math.abs(alpha)})^2 ${beta >= 0 ? "+" : ""}${beta}`,
           steps: [`$\\alpha = -b/(2a) = ${alpha}$`, `$\\beta = f(\\alpha) = ${beta}$`, `$f(x) = ${a}(x - (${alpha}))^2 + ${beta}$`],
           pourquoi: "La forme canonique révèle le sommet S(α;β) et permet d'étudier les variations sans calculer la dérivée."
         };
@@ -382,11 +413,11 @@ export const GENERATORS: Record<number, {
         const sign = a > 0 ? "positif" : "négatif";
         return {
           category: "Signe du trinôme",
-          eq: `f(x) = ${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`,
+          eq: `f(x) = ${a}x^2 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c}`,
           instr: `D\u00e9terminer le signe de $f(x)$ pour $x = 0$ et $x = ${x2 + 1}$.`,
-          ans: `${a > 0 ? (c > 0 ? 'positif' : 'négatif') : (c > 0 ? 'négatif' : 'positif')} puis ${sign}`,
-          steps: [`Racines : $x_1 = ${x1}$, $x_2 = ${x2}$`, `$a = ${a}$ ${a > 0 ? '> 0' : '< 0'}$`, `$0$ est entre les racines → signe de $-a$`, `$${x2 + 1}$ est \u00e0 l'ext\u00e9rieur → signe de $a$`],
-          pourquoi: "Entre les racines, le signe est celui de -a. À l'extérieur, c'est le signe de a. Le discriminant > 0 donne cette alternance."
+          ans: `${a > 0 ? (c > 0 ? "positif" : "négatif") : (c > 0 ? "négatif" : "positif")} puis ${sign}`,
+          steps: [`Racines : $x_1 = ${x1}$, $x_2 = ${x2}$`, `$a = ${a}$ ${a > 0 ? "> 0" : "< 0"}$`, `$0$ est entre les racines → signe de $-a$`, `$${x2 + 1}$ est \u00e0 l'ext\u00e9rieur → signe de $a$`],
+          pourquoi: "Entre les racines, le signe est celui de -a. À l'extérieur, c'est le signe de a."
         };
       },
       () => {
@@ -396,10 +427,10 @@ export const GENERATORS: Record<number, {
         const c = x1 * x2;
         return {
           category: "Inéquation",
-          eq: `x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c} \\le 0`,
+          eq: `x^2 ${b >= 0 ? "+" : ""}${b}x ${c >= 0 ? "+" : ""}${c} \\le 0`,
           instr: "Résoudre cette inéquation du second degré.",
           ans: `[${x1}; ${x2}]`,
-          aliases: [`${x1} ≤ x ≤ ${x2}`, `x ∈ [${x1}; ${x2}]`, `x \\in [${x1}, ${x2}]`],
+          aliases: [`${x1} \u2264 x \u2264 ${x2}`, `x \u2208 [${x1}; ${x2}]`, `x \\in [${x1}, ${x2}]`],
           steps: [`Racines : $x_1 = ${x1}$, $x_2 = ${x2}$`, `$a = 1 > 0$, donc le trinôme est n\u00e9gatif entre les racines.`, `Solution : $x \\in [${x1}; ${x2}]$.`],
           pourquoi: "Pour a > 0, le trinôme est ≤ 0 entre ses racines. Toujours faire le tableau de signes pour ne pas se tromper."
         };
@@ -419,7 +450,7 @@ export const GENERATORS: Record<number, {
           instr: "Compléter la loi de probabilité (la somme doit faire 1).",
           ans: String(missing.toFixed(1)),
           steps: [`La somme des probabilit\u00e9s doit \u00eatre \u00e9gale \u00e0 $1$.`, `$1 - ${known.toFixed(1)} = ${missing.toFixed(1)}$`],
-          pourquoi: "La somme de toutes les probabilités d'une loi vaut toujours 1. C'est le premier réflexe à avoir."
+          pourquoi: "La somme de toutes les probabilités d'une loi vaut toujours 1."
         };
       },
       () => {
@@ -434,7 +465,7 @@ export const GENERATORS: Record<number, {
           instr: "Calculer l'espérance $E(X)$.",
           ans: String(e),
           steps: [`$E(X) = 0 \\times 0{,}4 + 10 \\times 0{,}6$`, `$= 0 + 6 = 6$`],
-          pourquoi: "L'espérance est la moyenne pondérée des valeurs par leurs probabilités. Chaque valeur × sa proba, puis on somme."
+          pourquoi: "L'espérance est la moyenne pondérée des valeurs par leurs probabilités."
         };
       },
       () => {
@@ -471,8 +502,8 @@ export const GENERATORS: Record<number, {
           eq: `X \\in \\{0; 5; 10\\}, \\quad P=(0{,}3; 0{,}5; 0{,}2)`,
           instr: "Calculer la variance $V(X)$ avec la formule $E(X^2) - [E(X)]^2$.",
           ans: String(v),
-          steps: [`$E(X) = 0{,}3 \\times 0 + 0{,}5 \\times 5 + 0{,}2 \\times 10 = ${e}$`, `$E(X^2) = 0{,}3 \\times 0 + 0{,}5 \\times 25 + 0{,}2 \\times 100 = ${e2}$`, `$V(X) = ${e2} - ${e}^2 = ${e2} - ${e * e} = ${v}$`],
-          pourquoi: "La variance = moyenne des carrés moins le carré de la moyenne. Ne pas confondre E(X²) et [E(X)]²."
+          steps: [`$E(X) = ${e}$`, `$E(X^2) = 0 + 0{,}5 \\times 25 + 0{,}2 \\times 100 = ${e2}$`, `$V(X) = ${e2} - ${e}^2 = ${e2} - ${e * e} = ${v}$`],
+          pourquoi: "Variance = moyenne des carrés moins le carré de la moyenne. Ne pas confondre E(X²) et [E(X)]²."
         };
       },
       () => {
@@ -488,7 +519,7 @@ export const GENERATORS: Record<number, {
           eq: `\\text{Mise } = ${mise}\u20ac,\\ \\text{Gain } = ${gain}\u20ac\\ (P=${probGain}),\\ \\text{Perte } (P=${probPerte})`,
           instr: "Calculer l'espérance de gain algébrique et dire si le jeu est équitable.",
           ans: `${eRounded} \u20ac, ${equitable}`,
-          steps: [`Gain alg\u00e9brique : gain brut $-$ mise = ${gain - mise}\u20ac ou $-$mise = ${-mise}\u20ac.`, `$E = ${gain - mise} \\times ${probGain} + (${-mise}) \\times ${probPerte} = ${eRounded}\u20ac$`, `$E ${eRounded > 0 ? '> 0' : eRounded < 0 ? '< 0' : '= 0'}$ → jeu ${equitable}.`],
+          steps: [`Gain alg\u00e9brique : gain brut $-$ mise = ${gain - mise}\u20ac ou $-$mise = ${-mise}\u20ac.`, `$E = ${gain - mise} \\times ${probGain} + (${-mise}) \\times ${probPerte} = ${eRounded}\u20ac$`, `$E ${eRounded > 0 ? "> 0" : eRounded < 0 ? "< 0" : "= 0"}$ → jeu ${equitable}.`],
           pourquoi: "Un jeu est équitable si E = 0. Il faut toujours soustraire la mise pour obtenir le gain algébrique."
         };
       },
@@ -507,7 +538,7 @@ export const GENERATORS: Record<number, {
           instr: "Calculer l'écart-type $\\sigma(X)$ (arrondir au centième).",
           ans: String(Math.round(sigma * 100) / 100),
           steps: [`$E(X) = ${e}$`, `$V(X) = E(X^2) - [E(X)]^2 = ${e2} - ${e * e} = ${v}$`, `$\\sigma = \\sqrt{${v}} \\approx ${Math.round(sigma * 100) / 100}$`],
-          pourquoi: "L'écart-type = √(variance). Il mesure la dispersion moyenne autour de l'espérance, dans la même unité que X."
+          pourquoi: "L'écart-type = √(variance). Il mesure la dispersion moyenne autour de l'espérance."
         };
       }
     ]
@@ -539,7 +570,7 @@ export const GENERATORS: Record<number, {
           instr: "Calculer $P_A(B)$.",
           ans: String(res),
           steps: [`$P_A(B) = \\dfrac{P(A \\cap B)}{P(A)}$`, `$= \\dfrac{${pai.toFixed(2)}}{${pa.toFixed(2)}} = ${res}$`],
-          pourquoi: "La probabilité conditionnelle = intersection divisée par la probabilité de la condition. On réduit l'univers à A."
+          pourquoi: "La probabilité conditionnelle = intersection divisée par la probabilité de la condition."
         };
       },
       () => {
@@ -586,7 +617,7 @@ export const GENERATORS: Record<number, {
           eq: `P(A)=${pa.toFixed(2)},\\ P_A(B)=${pasb.toFixed(2)},\\ P_{\\bar{A}}(B)=${pnonasb.toFixed(2)}`,
           instr: "Calculer $P(B)$ par la formule des probabilités totales.",
           ans: String(pb),
-          steps: [`$P(B) = P(A)P_A(B) + P(\\bar{A})P_{\\bar{A}}(B)$`, `$= ${pa.toFixed(2)} \\times ${pasb.toFixed(2)} + ${pnona.toFixed(2)} \\times ${pnonasb.toFixed(2)}$`, `$= ${Math.round(pa * pasb * 100) / 100} + ${Math.round(pnona * pnonasb * 100) / 100} = ${pb}$`],
+          steps: [`$P(B) = P(A)P_A(B) + P(\\bar{A})P_{\\bar{A}}(B)$`, `$= ${pa.toFixed(2)} \\times ${pasb.toFixed(2)} + ${pnona.toFixed(2)} \\times ${pnonasb.toFixed(2)} = ${pb}$`],
           pourquoi: "La formule des probabilités totales décompose P(B) en additionnant toutes les intersections qui mènent à B."
         };
       },
@@ -601,8 +632,8 @@ export const GENERATORS: Record<number, {
           eq: `P(A)=0{,}5,\\ P_A(B)=0{,}7,\\ P_{\\bar{A}}(B)=0{,}3`,
           instr: "Construire l'arbre et calculer $P(\\bar{B})$.",
           ans: String(Math.round((1 - pb) * 100) / 100),
-          steps: [`$P(B) = 0{,}5 \\times 0{,}7 + 0{,}5 \\times 0{,}3 = 0{,}35 + 0{,}15 = 0{,}5$`, `$P(\\bar{B}) = 1 - P(B) = 0{,}5$`],
-          pourquoi: "La probabilité de l'événement contraire = 1 - P(B). Toujours vérifier qu'on a bien tous les chemins."
+          steps: [`$P(B) = 0{,}5 \\times 0{,}7 + 0{,}5 \\times 0{,}3 = 0{,}5$`, `$P(\\bar{B}) = 1 - P(B) = 0{,}5$`],
+          pourquoi: "La probabilité de l'événement contraire = 1 - P(B)."
         };
       }
     ]
@@ -622,8 +653,8 @@ export const GENERATORS: Record<number, {
           eq: `\\vec{u}\\begin{pmatrix}${ux}\\\\${uy}\\end{pmatrix}, \\quad \\vec{v}\\begin{pmatrix}${vx}\\\\${vy}\\end{pmatrix}`,
           instr: "Calculer $\\vec{u} \\cdot \\vec{v}$.",
           ans: String(res),
-          steps: [`$\\vec{u} \\cdot \\vec{v} = xx' + yy'$`, `$= ${ux} \\times ${vx < 0 ? '(' + vx + ')' : vx} + ${uy} \\times ${vy < 0 ? '(' + vy + ')' : vy} = ${ux * vx} ${uy * vy >= 0 ? '+' : ''}${uy * vy} = ${res}$`],
-          pourquoi: "Produit scalaire = somme des produits des coordonnées correspondantes. Attention aux signes dans les multiplications."
+          steps: [`$\\vec{u} \\cdot \\vec{v} = xx' + yy'$`, `$= ${ux} \\times ${vx < 0 ? "(" + vx + ")" : vx} + ${uy} \\times ${vy < 0 ? "(" + vy + ")" : vy} = ${res}$`],
+          pourquoi: "Produit scalaire = somme des produits des coordonnées correspondantes. Attention aux signes."
         };
       },
       () => {
@@ -637,7 +668,7 @@ export const GENERATORS: Record<number, {
           instr: "Calculer la norme $\\|\\vec{u}\\|$ (arrondir au centième).",
           ans: String(normRounded),
           steps: [`$\\|\\vec{u}\\| = \\sqrt{x^2 + y^2}$`, `$= \\sqrt{${ux}^2 + ${uy}^2} = \\sqrt{${ux * ux + uy * uy}}$`, `$\\approx ${normRounded}$`],
-          pourquoi: "La norme = longueur du vecteur, obtenue par Pythagore. Si le résultat est entier, garder la valeur exacte."
+          pourquoi: "La norme = longueur du vecteur, obtenue par Pythagore."
         };
       },
       () => {
@@ -646,12 +677,10 @@ export const GENERATORS: Record<number, {
         const genOrth = rnd(0, 1) === 0;
         let vx: number, vy: number;
         if (genOrth) {
-          vx = -uy;
-          vy = ux;
+          vx = -uy; vy = ux;
         } else {
-          vx = rndNZ(-3, 3);
-          vy = rndNZ(-3, 3);
-          if (ux * vx + uy * vy === 0) { vx += 1; }
+          vx = rndNZ(-3, 3); vy = rndNZ(-3, 3);
+          if (ux * vx + uy * vy === 0) vx += 1;
         }
         const dot = ux * vx + uy * vy;
         return {
@@ -659,15 +688,18 @@ export const GENERATORS: Record<number, {
           eq: `\\vec{u}\\begin{pmatrix}${ux}\\\\${uy}\\end{pmatrix}, \\quad \\vec{v}\\begin{pmatrix}${vx}\\\\${vy}\\end{pmatrix}`,
           instr: "Ces deux vecteurs sont-ils orthogonaux ? (oui/non)",
           ans: dot === 0 ? "oui" : "non",
-          steps: [`$\\vec{u} \\cdot \\vec{v} = ${ux} \\times ${vx < 0 ? '(' + vx + ')' : vx} + ${uy} \\times ${vy < 0 ? '(' + vy + ')' : vy} = ${dot}$`, dot === 0 ? `$= 0$ → les vecteurs sont orthogonaux.` : `$\\neq 0$ → les vecteurs ne sont pas orthogonaux.`],
-          pourquoi: "Deux vecteurs sont orthogonaux si et seulement si leur produit scalaire est nul. C'est un test infaillible."
+          steps: [`$\\vec{u} \\cdot \\vec{v} = ${ux} \\times ${vx < 0 ? "(" + vx + ")" : vx} + ${uy} \\times ${vy < 0 ? "(" + vy + ")" : vy} = ${dot}$`, dot === 0 ? `$= 0$ → les vecteurs sont orthogonaux.` : `$\\neq 0$ → les vecteurs ne sont pas orthogonaux.`],
+          pourquoi: "Deux vecteurs sont orthogonaux si et seulement si leur produit scalaire est nul."
         };
       }
     ],
     intermediaire: [
       () => {
-        const angle = [0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2, 2 * Math.PI / 3, 3 * Math.PI / 4][rnd(0, 6)];
-        const angleStr = ["0", "\\pi/6", "\\pi/4", "\\pi/3", "\\pi/2", "2\\pi/3", "3\\pi/4"][[0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2, 2 * Math.PI / 3, 3 * Math.PI / 4].indexOf(angle)];
+        const angles = [0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2, 2 * Math.PI / 3, 3 * Math.PI / 4];
+        const angleStrs = ["0", "\\pi/6", "\\pi/4", "\\pi/3", "\\pi/2", "2\\pi/3", "3\\pi/4"];
+        const idx = rnd(0, angles.length - 1);
+        const angle = angles[idx];
+        const angleStr = angleStrs[idx];
         const nu = rnd(2, 5);
         const nv = rnd(2, 5);
         const cos = Math.cos(angle);
@@ -696,8 +728,8 @@ export const GENERATORS: Record<number, {
           eq: `\\vec{u}\\begin{pmatrix}${ux}\\\\${uy}\\end{pmatrix}, \\quad \\vec{v}\\begin{pmatrix}${vx}\\\\${vy}\\end{pmatrix}`,
           instr: "Calculer l'angle entre $\\vec{u}$ et $\\vec{v}$ (en degrés, arrondi).",
           ans: String(angleApprox),
-          aliases: [`${angleApprox}°`, `${angleApprox} degrés`],
-          steps: [`$\\vec{u} \\cdot \\vec{v} = ${ux} \\times ${vx} + ${uy} \\times ${vy} = ${dot}$`, `$\\|\\vec{u}\\| = ${nu}$, $\\|\\vec{v}\\| = ${Math.round(nv * 100) / 100}$`, `$\\cos\\theta = \\frac{${dot}}{${nu} \\times ${Math.round(nv * 100) / 100}} \\approx ${Math.round(cosVal * 1000) / 1000}$`, `$\\theta \\approx ${angleApprox}^\\circ$`],
+          aliases: [`${angleApprox}\u00b0`, `${angleApprox} degr\u00e9s`],
+          steps: [`$\\vec{u} \\cdot \\vec{v} = ${dot}$`, `$\\|\\vec{u}\\| = ${nu}$, $\\|\\vec{v}\\| = ${Math.round(nv * 100) / 100}$`, `$\\cos\\theta = \\frac{${dot}}{${nu} \\times ${Math.round(nv * 100) / 100}} \\approx ${Math.round(cosVal * 1000) / 1000}$`, `$\\theta \\approx ${angleApprox}^\\circ$`],
           pourquoi: "cos θ = (u·v) / (||u|| × ||v||). Si cos θ > 0, l'angle est aigu. Si cos θ < 0, l'angle est obtus."
         };
       }
@@ -797,7 +829,10 @@ export const GENERATORS: Record<number, {
       },
       () => {
         const cosVal = ["1/2", "\\sqrt{2}/2", "\\sqrt{3}/2", "3/5", "4/5"][rnd(0, 4)];
-        const cosValNum = cosVal === "1/2" ? 0.5 : cosVal === "\\sqrt{2}/2" ? Math.sqrt(2) / 2 : cosVal === "\\sqrt{3}/2" ? Math.sqrt(3) / 2 : cosVal === "3/5" ? 0.6 : 0.8;
+        const cosValNum = cosVal === "1/2" ? 0.5
+          : cosVal === "\\sqrt{2}/2" ? Math.sqrt(2) / 2
+          : cosVal === "\\sqrt{3}/2" ? Math.sqrt(3) / 2
+          : cosVal === "3/5" ? 0.6 : 0.8;
         const sinValNum = Math.sqrt(1 - cosValNum * cosValNum);
         const sinRounded = Math.round(sinValNum * 10000) / 10000;
         return {
@@ -814,8 +849,28 @@ export const GENERATORS: Record<number, {
 };
 
 export function checkAnswer(userInput: string, correct: string, aliases?: string[]): boolean {
-  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+  const norm = (s: string) => s.trim().toLowerCase()
+    .replace(/\\text\{([^}]*)\}/g, "$1")
+    .replace(/\\/g, "")
+    .replace(/\{|\}/g, "")
+    .replace(/\s+/g, "")
+    .replace(/×/g, "*")
+    .replace(/÷/g, "/")
+    .replace(/−/g, "-")
+    .replace(/,/g, ".");
+
   const u = norm(userInput);
-  const c = norm(correct);
-  return u === c || (aliases?.some(a => norm(a) === u) ?? false);
+
+  const candidates = [correct, ...(aliases || [])];
+
+  for (const cand of candidates) {
+    const c = norm(cand);
+    if (u === c) return true;
+  }
+
+  for (const cand of candidates) {
+    if (areExprEqual(userInput, cand)) return true;
+  }
+
+  return false;
 }

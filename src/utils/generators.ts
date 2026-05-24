@@ -72,14 +72,16 @@ export const GENERATORS: Record<number, {
       () => {
         const a = rndNZ(-3, 3);
         const b = rndNZ(-4, 4);
+        const resA = 3 * a;
+        const resB = 2 * b;
         return {
           category: "Produit uv",
           eq: `f(x) = (${a}x ${b >= 0 ? '+' : ''}${b}) \\times x^2`,
           instr: "Calculer $f'(x)$ en utilisant la formule du produit.",
-          ans: `${a}x^2 ${b >= 0 ? '+' : ''}${b * 2}x`,
-          aliases: [`${a}x^{2} ${b >= 0 ? '+' : ''}${b * 2}x`],
-          steps: [`$u = ${a}x ${b >= 0 ? '+' : ''}${b}$, $u' = ${a}$`, `$v = x^2$, $v' = 2x$`, `$f' = u'v + uv' = ${a} \\cdot x^2 + (${a}x ${b >= 0 ? '+' : ''}${b}) \\cdot 2x$`, `$= ${a}x^2 ${b >= 0 ? '+' : ''}${b * 2}x$`],
-          pourquoi: "Ne jamais dériver chaque facteur séparément. Toujours appliquer u'v + uv'."
+          ans: `${resA}x^2 ${resB >= 0 ? '+' : ''}${resB}x`,
+          aliases: [`${resA}x^{2} ${resB >= 0 ? '+' : ''}${resB}x`],
+          steps: [`$u = ${a}x ${b >= 0 ? '+' : ''}${b}$, $u' = ${a}$`, `$v = x^2$, $v' = 2x$`, `$f' = u'v + uv' = ${a} \\cdot x^2 + (${a}x ${b >= 0 ? '+' : ''}${b}) \\cdot 2x = ${a}x^2 + ${2*a}x^2 ${2*b >= 0 ? '+' : ''}${2*b}x$`, `$= ${resA}x^2 ${resB >= 0 ? '+' : ''}${resB}x$`],
+          pourquoi: "Ne jamais dériver chaque facteur séparément. Toujours appliquer u'v + uv' et développer."
         };
       },
       () => {
@@ -176,15 +178,15 @@ export const GENERATORS: Record<number, {
         const b = rndNZ(-4, 4);
         const c = rndNZ(-3, 3);
         const coeff = a * 2;
-        const constTerm = a * b + c;
-        const uPrime = `${coeff}x ${b >= 0 ? '+' : ''}${constTerm}`;
+        const uPrime = b === 0 ? `${coeff}x` : `${coeff}x ${b >= 0 ? '+' : ''}${b}`;
+        const poly = `${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}`;
         return {
           category: "Dérivée e^u (composée)",
-          eq: `f(x) = e^{${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}}`,
+          eq: `f(x) = e^{${poly}}`,
           instr: "Calculer $f'(x)$.",
-          ans: `(${uPrime})e^{${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}}`,
-          steps: [`$u(x) = ${a}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c}$`, `$u'(x) = ${uPrime}$`, `$f'(x) = u' \\cdot e^u$`],
-          pourquoi: "On dérive l'exposant (comme un polynôme classique) et on le colle devant l'exponentielle."
+          ans: `(${uPrime})e^{${poly}}`,
+          steps: [`$u(x) = ${poly}$`, `$u'(x) = ${uPrime}$`, `$f'(x) = u' \\cdot e^u = (${uPrime})e^{${poly}}$`],
+          pourquoi: "On dérive l'exposant (comme un polynôme classique) et on le colle devant l'exponentielle. La constante c disparaît dans u'."
         };
       },
       () => {
@@ -641,9 +643,16 @@ export const GENERATORS: Record<number, {
       () => {
         const ux = rndNZ(-3, 3);
         const uy = rndNZ(-3, 3);
-        let vx = -uy;
-        let vy = ux;
-        if (rnd(0, 1) === 0) { vx = uy; vy = -ux; }
+        const genOrth = rnd(0, 1) === 0;
+        let vx: number, vy: number;
+        if (genOrth) {
+          vx = -uy;
+          vy = ux;
+        } else {
+          vx = rndNZ(-3, 3);
+          vy = rndNZ(-3, 3);
+          if (ux * vx + uy * vy === 0) { vx += 1; }
+        }
         const dot = ux * vx + uy * vy;
         return {
           category: "Orthogonalité",

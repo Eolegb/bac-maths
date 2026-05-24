@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
 import {
   Flame, CheckCircle2, XCircle, Award, Download, RefreshCw, 
-  ArrowRight, BookMarked, AlertCircle, LogOut, BrainCircuit, Sparkles
+  ArrowRight, BookMarked, AlertCircle, LogOut, BrainCircuit, Sparkles, ListChecks
 } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { MODULES, BAC_EXERCISES, BacExercise } from "./data/modules";
@@ -228,6 +228,12 @@ export default function App() {
                   <div className="bg-rose-500/5 p-4 rounded-2xl border border-rose-500/10 flex gap-3 text-xs text-rose-400 leading-relaxed">
                     <AlertCircle size={18} className="shrink-0"/>
                     <div><span className="font-bold block mb-1">PIÈGE À ÉVITER</span><Latex math={r.piege}/></div>
+                  </div>
+                  <div className="bg-amber-400/5 p-4 rounded-2xl border border-amber-400/10 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-widest"><ListChecks size={14}/>La recette — étape par étape</div>
+                    {r.etapes.map((step, j) => (
+                      <div key={j} className="flex gap-3 text-sm text-gray-300"><span className="text-amber-400 font-bold shrink-0">{j+1}.</span><Latex math={step} /></div>
+                    ))}
                   </div>
                 </div>
               ))}

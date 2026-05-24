@@ -42,8 +42,9 @@ export const Latex: React.FC<LatexProps> = ({ math, block = false, className = "
           katex.render(formula, span, { displayMode: false, throwOnError: false });
           containerRef.current?.appendChild(span);
         } else if (part) {
-          const textNode = document.createTextNode(part);
-          containerRef.current?.appendChild(textNode);
+          const span = document.createElement("span");
+          span.innerHTML = part;
+          containerRef.current?.appendChild(span);
         }
       });
     }
